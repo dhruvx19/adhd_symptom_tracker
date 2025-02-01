@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mindle/providers.dart/signup_provider.dart';
 import 'package:mindle/ui/auth/create_profile.dart';
 import 'package:mindle/ui/auth/login.dart';
+import 'package:mindle/utils/color.dart';
 import 'package:provider/provider.dart';
 
 import '../../utils/constants.dart';
@@ -47,7 +48,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(provider.errorMessage!),
-          backgroundColor: AppColors.errorRed,
+          backgroundColor: AppTheme.error,
         ),
       );
     }
@@ -82,7 +83,7 @@ void _navigateToProfilePage(BuildContext context) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(provider.errorMessage!),
-          backgroundColor: AppColors.errorRed,
+          backgroundColor: AppTheme.error,
         ),
       );
     }
@@ -95,12 +96,12 @@ void _navigateToProfilePage(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => SignUpProvider(),
       child: Scaffold(
-        backgroundColor: AppColors.backgroundWhite,
+        backgroundColor: AppTheme.background,
         appBar: AppBar(
-          backgroundColor: AppColors.backgroundWhite,
+          backgroundColor: AppTheme.background,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: AppColors.darkPurple),
+            icon: Icon(Icons.arrow_back, color: AppTheme.upeiGreen),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -265,10 +266,10 @@ void _navigateToProfilePage(BuildContext context) {
                     Positioned.fill(
                       child: Container(
                         color: Colors.transparent,
-                        child: Center(
+                        child: const Center(
                           child: CircularProgressIndicator(
                             valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.softPurple),
+                                AppTheme.upeiRed),
                           ),
                         ),
                       ),

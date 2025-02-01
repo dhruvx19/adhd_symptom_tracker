@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mindle/providers.dart/profile_provider.dart';
+import 'package:mindle/providers.dart/profile_services.dart';
 import 'package:mindle/ui/auth/login.dart';
 import 'package:provider/provider.dart';
 
@@ -17,7 +18,7 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
   final Color softPurple = const Color(0xFF8D5BFF);
   final Color darkPurple = const Color(0xFF2D2642);
 
-  // Predefined lists as instance variables
+  // Predefined lists remain the same
   final List<String> _predefinedSymptoms = [
     'Careless mistakes',
     'Difficulty focusing',
@@ -49,7 +50,9 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
 
   // State variables
   int _currentStep = 0;
+  bool _isLoading = false;
   File? _profileImage;
+  String? _base64Image;
   final List<String> _currentMedications = [];
   final List<String> _selectedSymptoms = [];
   final List<String> _selectedStrategies = [];
@@ -66,74 +69,139 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     super.dispose();
   }
 
-  void _submitProfile() async {
+  Future<void> _handleStepSubmission() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
     final provider = Provider.of<ProfileProvider>(context, listen: false);
+    bool success = false;
 
-    // Convert image to base64 and log it
-    final base64Image = _convertImageToBase64();
-    if (base64Image != null) {
-      debugPrint('Profile Image Base64: $base64Image');
+    try {
+      switch (_currentStep) {
+        case 0: // Profile Photo
+          if (_profileImage != null) {
+            if (_base64Image == null) {
+              _base64Image = await _convertImageToBase64();
+            }
+            if (_base64Image != null) {
+              success = await provider.uploadProfilePicture(_base64Image!);
+            }
+          } else {
+            success = true; // Skip if no image selected
+          }
+          break;
+
+        case 1: // Medications
+          if (_currentMedications.isNotEmpty) {
+            success = await provider.addMedications(_currentMedications);
+          } else {
+            success = true;
+          }
+          break;
+
+        case 2: // Symptoms
+          if (_selectedSymptoms.isNotEmpty) {
+            success = await provider.addSymptoms(_selectedSymptoms);
+          } else {
+            success = true;
+          }
+          break;
+
+        case 3: // Strategy
+          if (_selectedStrategies.isEmpty) {
+            _showError('Please select a support strategy');
+            success = false;
+          } else {
+            success = await provider
+                .addStrategy(_selectedStrategies.first.toString());
+
+            if (success) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+              );
+              return;
+            }
+          }
+          break;
+      }
+
+      if (success) {
+        setState(() => _currentStep++);
+      } else {
+        _showError(provider.error ?? 'Failed to save data');
+      }
+    } catch (e) {
+      _showError('An unexpected error occurred');
+      print('Error in step submission: $e');
+    } finally {
+      setState(() => _isLoading = false);
     }
+  }
 
-    // Ensure at least one strategy is selected
-    if (_selectedStrategies.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a support strategy')),
-      );
-      return;
-    }
-
-    final success = await provider.submitProfile(
-      base64Image: base64Image,
-      medications: _currentMedications,
-      symptoms: _selectedSymptoms,
-      strategy: _selectedStrategies.first, // Taking the first selected strategy
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
-
-    if (success) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(provider.error ?? 'Failed to submit profile'),
-        ),
-      );
-    }
   }
 
   Future<void> _pickProfileImage() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1800,
-      maxHeight: 1800,
-      imageQuality: 80,
-    );
+    try {
+      final picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
 
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-      });
+      if (pickedFile != null) {
+        setState(() {
+          _profileImage = File(pickedFile.path);
+          _base64Image = null; // Reset base64 when new image is picked
+        });
+        // Convert to base64 immediately after picking
+        _base64Image = await _convertImageToBase64();
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      _showError('Failed to pick image');
     }
   }
 
-  String? _convertImageToBase64() {
-  if (_profileImage == null) return null;
-  try {
-    final bytes = _profileImage!.readAsBytesSync();
-    final base64String = base64Encode(bytes);
-    // Log the first and last few characters to verify the string
-    print('Base64 length: ${base64String.length}');
-    print('Base64 start: ${base64String.substring(0, 50)}...');
-    print('Base64 end: ...${base64String.substring(base64String.length - 50)}');
-    return base64String;
-  } catch (e) {
-    print('Error converting image to base64: $e');
-    return null;
+  Future<String?> _convertImageToBase64() async {
+    if (_profileImage == null) return null;
+
+    try {
+      List<int> imageBytes = await _profileImage!.readAsBytes();
+      String base64String = base64Encode(imageBytes);
+      return base64String;
+    } catch (e) {
+      print('Error converting image to base64: $e');
+      return null;
+    }
   }
-}
+
+  Widget _buildProfileImage() {
+    if (_profileImage != null) {
+      return CircleAvatar(
+        radius: 100,
+        backgroundImage: FileImage(_profileImage!),
+        onBackgroundImageError: (e, stackTrace) {
+          print('Error loading image: $e');
+          setState(() {
+            _profileImage = null;
+            _base64Image = null;
+          });
+        },
+      );
+    } else {
+      return const CircleAvatar(
+        radius: 100,
+        child: Icon(Icons.person, size: 100),
+      );
+    }
+  }
 
   void _addMedication() {
     final medication = _medicationController.text.trim();
@@ -148,8 +216,6 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
   void _removeMedication(int index) {
     setState(() => _currentMedications.removeAt(index));
   }
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -194,7 +260,7 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: _buildNavigationButton(),
+            child: _buildNavigationButton(fontScale),
           ),
         ],
       ),
@@ -243,14 +309,11 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     }
   }
 
-  Widget _buildNavigationButton() {
-    final size = MediaQuery.of(context).size;
-    final fontScale = size.width / 375.0;
-
+  Widget _buildNavigationButton(double fontScale) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _currentStep == 3 ? _submitProfile : _goToNextStep,
+        onPressed: _isLoading ? null : _handleStepSubmission,
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
@@ -258,14 +321,23 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
           ),
           backgroundColor: softPurple,
         ),
-        child: Text(
-          _currentStep == 3 ? 'Submit' : 'Next',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16 * fontScale,
-          ),
-        ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(
+                _currentStep == 3 ? 'Submit' : 'Next',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16 * fontScale,
+                ),
+              ),
       ),
     );
   }
@@ -281,19 +353,21 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _profileImage != null
-              ? CircleAvatar(
-                  radius: 100,
-                  backgroundImage: FileImage(_profileImage!),
-                )
-              : const CircleAvatar(
-                  radius: 100,
-                  child: Icon(Icons.person, size: 100),
-                ),
+          _buildProfileImage(),
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: _pickProfileImage,
-            child: const Text('Pick Profile Photo'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: softPurple,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Pick Profile Photo',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -301,42 +375,42 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
   }
 
   Widget _buildCurrentMedicationsStep() {
-  return Padding(
-    padding: const EdgeInsets.all(16.0),
-    child: Column(
-      children: [
-        TextField(
-          controller: _medicationController,
-          onSubmitted: (_) => _addMedication(),
-          decoration: InputDecoration(
-            labelText: 'Enter Current Medication',
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: _addMedication,
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          TextField(
+            controller: _medicationController,
+            onSubmitted: (_) => _addMedication(),
+            decoration: InputDecoration(
+              labelText: 'Enter Current Medication',
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: _addMedication,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 20),
-        Expanded(
-          child: _currentMedications.isEmpty
-              ? const Center(child: Text('No medications added'))
-              : ListView.builder(
-                  itemCount: _currentMedications.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(_currentMedications[index]),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => _removeMedication(index),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 20),
+          Expanded(
+            child: _currentMedications.isEmpty
+                ? const Center(child: Text('No medications added'))
+                : ListView.builder(
+                    itemCount: _currentMedications.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(_currentMedications[index]),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => _removeMedication(index),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildADHDSymptomsStep() {
     return Padding(
@@ -399,27 +473,28 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
   }
 
   Widget _buildStrategiesStep() {
-  return Padding(
-    padding: const EdgeInsets.all(16.0),
-    child: ListView.builder(
-      itemCount: _predefinedStrategies.length,
-      itemBuilder: (context, index) {
-        final strategy = _predefinedStrategies[index];
-        return RadioListTile<String>(
-          title: Text(strategy),
-          value: strategy,
-          groupValue: _selectedStrategies.isEmpty ? null : _selectedStrategies.first,
-          onChanged: (String? value) {
-            setState(() {
-              _selectedStrategies.clear();
-              if (value != null) {
-                _selectedStrategies.add(value);
-              }
-            });
-          },
-        );
-      },
-    ),
-  );
-}
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: ListView.builder(
+        itemCount: _predefinedStrategies.length,
+        itemBuilder: (context, index) {
+          final strategy = _predefinedStrategies[index];
+          return RadioListTile<String>(
+            title: Text(strategy),
+            value: strategy,
+            groupValue:
+                _selectedStrategies.isEmpty ? null : _selectedStrategies.first,
+            onChanged: (String? value) {
+              setState(() {
+                _selectedStrategies.clear();
+                if (value != null) {
+                  _selectedStrategies.add(value);
+                }
+              });
+            },
+          );
+        },
+      ),
+    );
+  }
 }

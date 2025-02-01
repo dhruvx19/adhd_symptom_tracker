@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mindle/helpers/notification.dart';
-import 'package:mindle/models/database_helper.dart';
 import 'package:mindle/models/goals.dart';
+import 'package:mindle/models/reminder_db.dart';
+import 'package:mindle/models/reminder_model.dart';
 
 class ReminderPage extends StatefulWidget {
   const ReminderPage({super.key});
@@ -34,7 +35,7 @@ class _ReminderPageState extends State<ReminderPage> {
   String? _selectedFrequency;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _notesController = TextEditingController();
-   final TextEditingController titleController = TextEditingController();
+   final TextEditingController _titleController = TextEditingController();
     Timer? _debounce;
 
 
@@ -66,37 +67,60 @@ class _ReminderPageState extends State<ReminderPage> {
     super.dispose();
   }
 
-void _saveGoal() async {
-  if (_startDate == null || _selectedFrequency == null || _selectedTime == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please fill all required fields')),
+void _saveReminder() async {
+    if (_startDate == null || _selectedFrequency == null || _selectedTime == null || _titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
+      return;
+    }
+
+    final success = await NotificationService.scheduleReminder(
+      context: context,
+      title: _titleController.text,
+      notes: _notesController.text,
+      startDate: _startDate!,
+      selectedTime: _selectedTime!,
+      frequency: _selectedFrequency!,
+      sound: _selectedSound ?? 'Default',
     );
-    return;
+
+    if (success) {
+      final reminder = Reminder(
+        name: _titleController.text,
+        frequency: _selectedFrequency!,
+        startDate: _startDate!,
+        notes: _notesController.text,
+        scheduledTime: _selectedTime!,
+        sound: _selectedSound,
+      );
+
+      await DatabaseHelper.instance.insertReminder(reminder);
+      Navigator.pop(context);
+    }
   }
+  void _saveToList() async {
+    if (_startDate == null || _selectedFrequency == null || _selectedTime == null || _titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
+      return;
+    }
 
-  // Schedule the notification with proper error handling
-  final success = await NotificationService.scheduleReminder(
-    context: context, // Pass context for showing permission dialog
-    title: titleController.text,
-    notes: _notesController.text,
-    startDate: _startDate!,
-    selectedTime: _selectedTime!,
-    frequency: _selectedFrequency!,
-    sound: _selectedSound ?? 'Default',
-  );
-
-  if (success) {
-    final goal = Goal(
-      name: titleController.text,
+    final reminder = Reminder(
+      name: _titleController.text,
       frequency: _selectedFrequency!,
       startDate: _startDate!,
       notes: _notesController.text,
+      scheduledTime: _selectedTime!,
+      sound: _selectedSound,
     );
 
-    await DatabaseHelper.instance.insertGoal(goal);
+    await DatabaseHelper.instance.insertReminder(reminder);
     Navigator.pop(context);
   }
-}
+
+
   Future<void> _selectTime(BuildContext context) async {
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
@@ -175,10 +199,10 @@ void _saveGoal() async {
                     ),
                     SizedBox(height: verticalSpacing * 2),
                     TextField(
+                      controller: _notesController,
                       maxLines: isSmallScreen ? 3 : 5,
-                      controller: titleController,
                       decoration: InputDecoration(
-                        hintText: 'Notes',
+                        hintText: 'Add notes...',
                         hintStyle: TextStyle(color: Colors.grey[600]),
                         fillColor: Colors.grey[200],
                         filled: true,
@@ -309,7 +333,7 @@ void _saveGoal() async {
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _saveGoal,
+                      onPressed: _saveReminder,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: softPurple,
                         padding: EdgeInsets.symmetric(
@@ -332,7 +356,7 @@ void _saveGoal() async {
                   SizedBox(width: horizontalPadding * 0.5),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _saveGoal,
+                      onPressed: _saveToList,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.grey[300],
                         padding: EdgeInsets.symmetric(

@@ -2,6 +2,7 @@ import 'package:mindle/helpers/notification.dart';
 import 'package:mindle/providers.dart/login_provider.dart';
 import 'package:mindle/providers.dart/profile_provider.dart';
 import 'package:mindle/providers.dart/signup_provider.dart';
+import 'package:mindle/providers.dart/users_provider.dart';
 import 'package:mindle/ui/splash.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,10 +13,12 @@ Future<void> main() async {
 
   runApp(
     MultiProvider(
+
       providers: [
         ChangeNotifierProvider(create: (_) => LoginProvider()),
         ChangeNotifierProvider(create: (_) => SignUpProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
       ],
       child: MyApp(),
     ),

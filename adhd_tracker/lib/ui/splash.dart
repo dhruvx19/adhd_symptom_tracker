@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mindle/utils/color.dart';
 import 'package:provider/provider.dart';
 import 'package:mindle/providers.dart/login_provider.dart';
 import 'package:mindle/ui/auth/login.dart';
@@ -20,8 +21,7 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _slideAnimation;
 
-  final Color softPurple = const Color(0xFF8D5BFF);
-  final Color darkPurple = const Color(0xFF2D2642);
+
   bool isFirstTime = true;
 
   @override
@@ -60,7 +60,7 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _checkLoginState() async {
     final prefs = await SharedPreferences.getInstance();
     isFirstTime = prefs.getBool('is_first_time') ?? true;
-    
+
     if (!isFirstTime) {
       final loginProvider = Provider.of<LoginProvider>(context, listen: false);
       await loginProvider.initialize();
@@ -70,7 +70,8 @@ class _SplashScreenState extends State<SplashScreen>
         final lastRecordedDate = prefs.getString('last_mood_date');
         final today = DateTime.now().toIso8601String().split('T')[0];
 
-        await Future.delayed(const Duration(milliseconds: 2000)); // Let animation complete
+        await Future.delayed(
+            const Duration(milliseconds: 2000)); // Let animation complete
 
         if (!mounted) return;
 
@@ -80,7 +81,8 @@ class _SplashScreenState extends State<SplashScreen>
           _navigateToPage(HomePage());
         }
       } else {
-        await Future.delayed(const Duration(milliseconds: 2000)); // Let animation complete
+        await Future.delayed(
+            const Duration(milliseconds: 2000)); // Let animation complete
         if (!mounted) return;
         _navigateToPage(const LoginPage());
       }
@@ -88,17 +90,17 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateToPage(Widget page) {
-  if (!mounted) return;
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (context) => page), // Remove PageRouteBuilder
-  );
-}
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => page), // Remove PageRouteBuilder
+    );
+  }
 
   Future<void> _handleGetStarted() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_first_time', false);
-    
+
     if (!mounted) return;
     _navigateToPage(const LoginPage());
   }
@@ -112,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final logoSize = size.width * 0.35;
+    final logoSize = size.width * 0.30;
     final fontScale = size.width / 375.0;
 
     return Scaffold(
@@ -126,10 +128,13 @@ class _SplashScreenState extends State<SplashScreen>
               children: [
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: size.width * 0.06),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: size.width * 0.06),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        // Update the logo container part in the build method:
+
                         FadeTransition(
                           opacity: _fadeAnimation,
                           child: ScaleTransition(
@@ -148,10 +153,16 @@ class _SplashScreenState extends State<SplashScreen>
                                   ),
                                 ],
                               ),
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                width: logoSize * 0.73,
-                                height: logoSize * 0.73,
+                              child: ClipOval(
+                                // Add ClipOval to ensure circular clipping
+                                child: Container(
+                                  padding: EdgeInsets.all(logoSize *
+                                      0.15), // Increase padding for better containment
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -169,18 +180,18 @@ class _SplashScreenState extends State<SplashScreen>
                                     fontFamily: 'Yaro',
                                     fontSize: 54 * fontScale,
                                     fontWeight: FontWeight.bold,
-                                    color: darkPurple,
+                                    color: AppTheme.upeiRed,
                                     letterSpacing: -0.5,
                                   ),
                                 ),
                                 SizedBox(height: size.height * 0.02),
                                 Text(
-                                  'Your personal ADHD companion',
+                                  'Your personal ADHD companion\nPowered by UPEI',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontFamily: 'Yaro',
                                     fontSize: 20 * fontScale,
-                                    color: darkPurple.withOpacity(0.7),
+                                    color: AppTheme.upeiGreen.withOpacity(0.8),
                                     height: 1.5,
                                   ),
                                 ),
@@ -218,8 +229,9 @@ class _SplashScreenState extends State<SplashScreen>
                         child: ElevatedButton(
                           onPressed: _handleGetStarted,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: softPurple,
-                            minimumSize: Size(double.infinity, size.height * 0.07),
+                            backgroundColor: AppTheme.upeiRed,
+                            minimumSize:
+                                Size(double.infinity, size.height * 0.07),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
