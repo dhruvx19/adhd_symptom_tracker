@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mindle/helpers/notification.dart';
 import 'package:mindle/utils/color.dart';
 import 'package:provider/provider.dart';
 import 'package:mindle/providers.dart/login_provider.dart';
@@ -20,7 +21,6 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   late Animation<double> _slideAnimation;
-
 
   bool isFirstTime = true;
 
@@ -54,14 +54,19 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
-    _checkLoginState();
+    _initializeApp();
   }
 
-  Future<void> _checkLoginState() async {
+  Future<void> _initializeApp() async {
     final prefs = await SharedPreferences.getInstance();
     isFirstTime = prefs.getBool('is_first_time') ?? true;
 
     if (!isFirstTime) {
+      // Request notification permissions
+      if (mounted) {
+        await NotificationService.requestPermission(context);
+      }
+
       final loginProvider = Provider.of<LoginProvider>(context, listen: false);
       await loginProvider.initialize();
 
@@ -70,8 +75,7 @@ class _SplashScreenState extends State<SplashScreen>
         final lastRecordedDate = prefs.getString('last_mood_date');
         final today = DateTime.now().toIso8601String().split('T')[0];
 
-        await Future.delayed(
-            const Duration(milliseconds: 2000)); // Let animation complete
+        await Future.delayed(const Duration(milliseconds: 2000));
 
         if (!mounted) return;
 
@@ -81,28 +85,32 @@ class _SplashScreenState extends State<SplashScreen>
           _navigateToPage(HomePage());
         }
       } else {
-        await Future.delayed(
-            const Duration(milliseconds: 2000)); // Let animation complete
+        await Future.delayed(const Duration(milliseconds: 2000));
         if (!mounted) return;
         _navigateToPage(const LoginPage());
       }
     }
   }
 
-  void _navigateToPage(Widget page) {
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => page), // Remove PageRouteBuilder
-    );
-  }
-
   Future<void> _handleGetStarted() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_first_time', false);
 
+    // Request notification permissions when user clicks "Get Started"
+    if (mounted) {
+      await NotificationService.requestPermission(context);
+    }
+
     if (!mounted) return;
     _navigateToPage(const LoginPage());
+  }
+
+  void _navigateToPage(Widget page) {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => page),
+    );
   }
 
   @override

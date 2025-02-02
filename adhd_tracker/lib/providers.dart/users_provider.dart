@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:mindle/models/ser_details.dart';
+import 'package:mindle/models/user_model.dart';
 
 class UserProvider extends ChangeNotifier {
   ProfileData? _profileData;
@@ -13,20 +14,33 @@ class UserProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   final FlutterSecureStorage _storage = FlutterSecureStorage();
+    final _client = http.Client();
+  static const timeout = Duration(seconds: 30);
 
   Future<void> fetchProfileData() async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
 
     try {
        final token = await _storage.read(key: 'auth_token');
-      final response = await http.get(
-        Uri.parse('http://10.0.2.2:2000/api/v1/users/getuserdetails'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+      final request = http.Request(
+        'GET',
+        Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
+      );
+      
+      // Add headers
+      request.headers.addAll({
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+
+      // Send the request with timeout
+      final response = await http.Response.fromStream(
+        await _client
+            .send(request)
+            .timeout(timeout, onTimeout: () {
+              throw TimeoutException('Request timed out');
+            }),
       );
 
       if (response.statusCode == 200) {

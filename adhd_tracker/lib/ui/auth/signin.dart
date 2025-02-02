@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mindle/providers.dart/signup_provider.dart';
 import 'package:mindle/ui/auth/create_profile.dart';
@@ -17,13 +18,14 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final Color softPurple = const Color(0xFF8D5BFF);
+
   final Color darkPurple = const Color(0xFF2D2642);
 
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final otpController = TextEditingController();
+  bool isPasswordVisible = false;
 
   @override
   void dispose() {
@@ -38,11 +40,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // Hide keyboard when signup is initiated
     FocusScope.of(context).unfocus();
 
-    final success = await provider.sendSignUpRequest(
-      nameController.text.trim(),
-      emailController.text.trim(), 
-      passwordController.text
-    );
+    final success = await provider.sendSignUpRequest(nameController.text.trim(),
+        emailController.text.trim(), passwordController.text);
 
     if (!success && provider.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -53,22 +52,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
     }
   }
-void _navigateToProfilePage(BuildContext context) {
-  if (!mounted) return;
+
   
-  // Get the existing provider instance
-  final signUpProvider = context.read<SignUpProvider>();
-  
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-      builder: (context) => ChangeNotifierProvider.value(
-        value: signUpProvider,
-        child: const ProfileCreationPage(),
+  void _navigateToProfilePage(BuildContext context) {
+    if (!mounted) return;
+
+    // Get the existing provider instance
+    final signUpProvider = context.read<SignUpProvider>();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider.value(
+          value: signUpProvider,
+          child: const ProfileCreationPage(),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _handleOtpVerification(
       BuildContext context, SignUpProvider provider) async {
@@ -78,6 +79,8 @@ void _navigateToProfilePage(BuildContext context) {
     final success = await provider.verifyOtp(otpController.text.trim());
 
     if (success) {
+      final storage = FlutterSecureStorage();
+      await storage.write(key: 'profile_creation_pending', value: 'true');
       _navigateToProfilePage(context);
     } else if (provider.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -88,6 +91,12 @@ void _navigateToProfilePage(BuildContext context) {
       );
     }
   }
+  static Future<bool> checkProfileCreationNeeded() async {
+    final storage = FlutterSecureStorage();
+    final isPending = await storage.read(key: 'profile_creation_pending');
+    return isPending == 'true';
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +117,8 @@ void _navigateToProfilePage(BuildContext context) {
         body: Consumer<SignUpProvider>(
           builder: (context, provider, child) {
             return GestureDetector(
-              onTap: () => FocusScope.of(context).unfocus(), // Dismiss keyboard on tap outside
+              onTap: () => FocusScope.of(context)
+                  .unfocus(), // Dismiss keyboard on tap outside
               child: Stack(
                 children: [
                   SingleChildScrollView(
@@ -187,7 +197,7 @@ void _navigateToProfilePage(BuildContext context) {
                         const SizedBox(height: 4),
                         TextField(
                           controller: passwordController,
-                          obscureText: true,
+                          obscureText: !isPasswordVisible,
                           decoration: InputDecoration(
                             hintText: 'Enter password',
                             fillColor: Colors.grey[200],
@@ -195,6 +205,19 @@ void _navigateToProfilePage(BuildContext context) {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: Colors.grey[600],
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isPasswordVisible = !isPasswordVisible;
+                                });
+                              },
                             ),
                           ),
                         ),
@@ -247,7 +270,7 @@ void _navigateToProfilePage(BuildContext context) {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: softPurple,
+                              backgroundColor: AppTheme.upeiRed,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -268,8 +291,8 @@ void _navigateToProfilePage(BuildContext context) {
                         color: Colors.transparent,
                         child: const Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                AppTheme.upeiRed),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(AppTheme.upeiRed),
                           ),
                         ),
                       ),

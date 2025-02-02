@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mindle/models/database_helper.dart';
 import 'package:mindle/models/goals.dart';
+import 'package:mindle/utils/color.dart';
 
 class NewGoalPage extends StatefulWidget {
   const NewGoalPage({super.key});
@@ -119,7 +120,7 @@ class _NewGoalPageState extends State<NewGoalPage> {
     final padding = size.width * 0.04;
 
     // Colors
-    final softPurple = const Color(0xFF8D5BFF);
+
     final grey = const Color(0xFFF5F5F5);
     final darkPurple = const Color(0xFF2D2642);
 
@@ -346,7 +347,7 @@ class _NewGoalPageState extends State<NewGoalPage> {
                     _saveGoal();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: softPurple,
+                    backgroundColor: AppTheme.upeiRed,
                     minimumSize: Size(double.infinity, size.height * 0.07),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -390,7 +391,7 @@ class _FrequencyButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         backgroundColor: isSelected ? Colors.blue[50] : Colors.white,
         side: BorderSide(
-          color: isSelected ? Colors.blue : Colors.grey[400]!,
+          color: isSelected ? AppTheme.upeiRed : Colors.grey[400]!,
           width: 1.5,
         ),
         shape: RoundedRectangleBorder(
@@ -401,7 +402,7 @@ class _FrequencyButton extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: isSelected ? Colors.blue : Colors.black,
+          color: isSelected ? AppTheme.upeiRed : Colors.black,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),

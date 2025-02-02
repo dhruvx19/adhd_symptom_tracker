@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:mindle/helpers/notification.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginProvider with ChangeNotifier {
@@ -17,16 +19,42 @@ class LoginProvider with ChangeNotifier {
   String? get token => _token;
 
   // Constants
-  static const String _baseUrl = 'https://freelance-backend-xx6e.onrender.com/api/v1';
+  static const String _baseUrl =
+      'https://freelance-backend-xx6e.onrender.com/api/v1';
   static const String _tokenKey = 'auth_token';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   // Initialize provider and check for existing token
   Future<void> initialize() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('token');
-    _isLoggedIn = _token != null;
+    final token = await _secureStorage.read(key: _tokenKey);
+    if (token != null) {
+      _token = token;
+      _isLoggedIn = true;
+      await NotificationService.initializeNotifications();
+
+      await NotificationService.scheduleDailyReminder();
+    }
+    notifyListeners();
+  }
+
+  Future<void> _handleSuccessfulLogin(Map<String, dynamic> responseData) async {
+    final token = responseData['data'] as String;
+
+    if (token.isEmpty) {
+      throw Exception('No token received from server');
+    }
+
+    // Store token
+    await _secureStorage.write(key: _tokenKey, value: token);
+
+    _token = token;
+    _isLoggedIn = true;
+    _clearError();
+
+    // Schedule daily notification when user logs in
+    await NotificationService.scheduleDailyReminder();
+
     notifyListeners();
   }
 
@@ -75,21 +103,30 @@ class LoginProvider with ChangeNotifier {
     }
   }
 
-  // Handle successful login
-  Future<void> _handleSuccessfulLogin(Map<String, dynamic> responseData) async {
-    final token = responseData['data'] as String;
+  //Logout
+  Future<void> logout() async {
+    try {
+      _setLoading(true);
 
-    if (token.isEmpty) {
-      throw Exception('No token received from server');
+      // Clear stored data
+      await _secureStorage.delete(key: _tokenKey);
+
+      // Cancel daily reminder
+      await AwesomeNotifications().cancelSchedule(0);
+
+      // Reset state
+      _token = null;
+      _isLoggedIn = false;
+      _clearError();
+
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = 'Error during logout: ${e.toString()}';
+      debugPrint('Logout Error: $e');
+      notifyListeners();
+    } finally {
+      _setLoading(false);
     }
-
-    // Store token
-    await _secureStorage.write(key: _tokenKey, value: token);
-
-    _token = token;
-    _isLoggedIn = true;
-    _clearError();
-    notifyListeners();
   }
 
   // Handle login error
@@ -122,29 +159,6 @@ class LoginProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Error checking login status: $e');
       return false;
-    }
-  }
-
-  // Logout
-  Future<void> logout() async {
-    try {
-      _setLoading(true);
-      
-      // Clear stored data
-      await _secureStorage.delete(key: _tokenKey);
-
-      // Reset state
-      _token = null;
-      _isLoggedIn = false;
-      _clearError();
-      
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = 'Error during logout: ${e.toString()}';
-      debugPrint('Logout Error: $e');
-      notifyListeners();
-    } finally {
-      _setLoading(false);
     }
   }
 

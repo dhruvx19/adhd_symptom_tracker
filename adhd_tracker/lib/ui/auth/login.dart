@@ -5,6 +5,7 @@ import 'package:mindle/providers.dart/signup_provider.dart';
 import 'package:mindle/ui/auth/create_profile.dart';
 import 'package:mindle/ui/auth/signin.dart';
 import 'package:mindle/ui/home/mood.dart';
+import 'package:mindle/utils/color.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -19,7 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  final Color softPurple = const Color(0xFF8D5BFF);
+ 
   final Color darkPurple = const Color(0xFF2D2642);
   bool isPasswordVisible = false;
 
@@ -204,7 +205,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: Text(
                           'Forgot Password?',
                           style: TextStyle(
-                            color: softPurple,
+                            color: AppTheme.upeiRed,
                             fontWeight: FontWeight.bold,
                             fontSize: 14 * fontScale,
                           ),
@@ -219,7 +220,7 @@ class _LoginPageState extends State<LoginPage> {
                           ? null 
                           : () => _performLogin(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: softPurple,
+                          backgroundColor: AppTheme.upeiRed,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -268,7 +269,7 @@ class _LoginPageState extends State<LoginPage> {
                             child: Text(
                               'Sign up',
                               style: TextStyle(
-                                color: softPurple,
+                                color: AppTheme.upeiRed,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14 * fontScale,
                               ),

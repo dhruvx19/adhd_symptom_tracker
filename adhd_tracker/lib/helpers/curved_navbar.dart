@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mindle/ui/representation/mood_representation.dart';
+import 'package:mindle/utils/color.dart';
 import 'package:provider/provider.dart';
 import 'package:mindle/ui/home/record/medication.dart';
 import 'package:mindle/ui/home/record/symptom.dart';
@@ -8,7 +10,7 @@ class CustomCurvedNavigationBar extends StatelessWidget {
     super.key,
     required this.items,
     required this.onTap,
-    this.selectedColor = const Color(0xFF8D5BFF),
+    this.selectedColor = AppTheme.upeiRed,
     this.unselectedColor = Colors.black,
     this.currentIndex = 0,
   }) : assert(
@@ -26,10 +28,13 @@ class CustomCurvedNavigationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final Size size = MediaQuery.of(context).size;
 
-    return SizedBox(
+    return Container(
       height: 80,
       child: Stack(
+        alignment: Alignment.bottomCenter,
+        clipBehavior: Clip.none,
         children: [
+          // Background with curved navigation
           Positioned(
             bottom: 0,
             left: 0,
@@ -41,36 +46,6 @@ class CustomCurvedNavigationBar extends StatelessWidget {
                   CustomPaint(
                     painter: _CurvedPainter(),
                     size: Size(size.width, 80),
-                  ),
-                  Center(
-                    heightFactor: .0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(180)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF8D5BFF).withOpacity(0.4),
-                            blurRadius: 3,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(MaterialPageRoute(
-                              builder: (context) => MedicationLoggingPage()));
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8D5BFF),
-                          shape: const CircleBorder(),
-                          padding: const EdgeInsets.all(16),
-                          elevation: 4,
-                        ),
-                        child: const Icon(Icons.add, color: Colors.white),
-                      ),
-                    ),
                   ),
                   SizedBox(
                     height: 90,
@@ -99,8 +74,45 @@ class CustomCurvedNavigationBar extends StatelessWidget {
                         },
                       )..insert(2, SizedBox(width: size.width * 0.20)),
                     ),
-                  )
+                  ),
                 ],
+              ),
+            ),
+          ),
+          
+          // Centered Add Button with original styling
+          Positioned(
+            top: -5, // Adjusted to prevent cutting off
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.all(Radius.circular(180)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.upeiRed.withOpacity(0.4),
+                      blurRadius: 3,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MoodChartScreen(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.upeiRed,
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(16),
+                    elevation: 4,
+                  ),
+                  child: const Icon(Icons.add, color: Colors.white),
+                ),
               ),
             ),
           ),

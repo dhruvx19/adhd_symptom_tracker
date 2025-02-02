@@ -33,6 +33,8 @@ class _MoodPageState extends State<MoodPage> {
 }
 
   Future<void> _checkDailyMoodStatus() async {
+    if (!mounted) return;
+    
     setState(() => _isChecking = true);
     
     try {
@@ -40,20 +42,44 @@ class _MoodPageState extends State<MoodPage> {
       final lastRecordedDate = prefs.getString('last_mood_date');
       final today = DateTime.now().toIso8601String().split('T')[0];
 
-     if (lastRecordedDate == today) {
-        await Future.delayed(Duration(milliseconds: 500));
-        if (!mounted) return;
-        _navigateToHome();
-      } else {
-        if (mounted) {
-          setState(() => _isChecking = false);
-        }
+      // First check if we already have a mood recorded for today
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      final token = loginProvider.token;
+      
+      if (token == null) {
+        throw Exception('Authentication error');
       }
-      }  catch (e) {
+
+      final url = Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/mood/getmoods');
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final moods = jsonDecode(response.body);
+        final todayMood = moods.any((mood) => 
+          mood['date'].toString().split('T')[0] == today);
+
+        if (todayMood || lastRecordedDate == today) {
+          if (mounted) {
+            _navigateToHome();
+          }
+        } else {
+          if (mounted) {
+            setState(() => _isChecking = false);
+          }
+        }
+      } else {
+        throw Exception('Failed to fetch moods');
+      }
+    } catch (e) {
       if (mounted) {
         setState(() => _isChecking = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error checking mood status')),
+          SnackBar(content: Text('Error checking mood status: ${e.toString()}')),
         );
       }
     }
@@ -62,33 +88,25 @@ class _MoodPageState extends State<MoodPage> {
   Future<void> _recordMood() async {
     if (_selectedMood == null) return;
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    final loginProvider = Provider.of<LoginProvider>(context, listen: false);
-    final token = loginProvider.token;
-
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Authentication error. Please login again.')),
-      );
-      setState(() {
-        _isLoading = false;
-      });
-      return;
-    }
-
-    final url = Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/mood/addmood');
-    final body = jsonEncode({
-      'date': DateTime.now().toIso8601String().split('T')[0],
-      'mood': _selectedMood! + 1,
-    });
+    setState(() => _isLoading = true);
 
     try {
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      final token = loginProvider.token;
+
+      if (token == null) {
+        throw Exception('Authentication error');
+      }
+
+      final url = Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/mood/addmood');
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      
       final response = await http.post(
         url,
-        body: body,
+        body: jsonEncode({
+          'date': today,
+          'mood': _selectedMood! + 1,
+        }),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -97,15 +115,15 @@ class _MoodPageState extends State<MoodPage> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('last_mood_date', 
-          DateTime.now().toIso8601String().split('T')[0]);
+        await prefs.setString('last_mood_date', today);
 
-        if (!mounted) return;
-        _navigateToHome();
+        if (mounted) {
+          _navigateToHome();
+        }
       } else {
         throw Exception('Failed to record mood');
       }
-    }catch (e) {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to record mood: ${e.toString()}')),
@@ -113,9 +131,7 @@ class _MoodPageState extends State<MoodPage> {
       }
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,12 +7,12 @@ import 'package:mindle/utils/constants.dart';
 import 'package:mindle/utils/validators.dart';
 import 'package:http/http.dart' as http;
 
-
 class SignUpProvider with ChangeNotifier {
   bool _isLoading = false;
   bool _isOtpSent = false;
   bool _isOtpVerified = false;
   String? _errorMessage;
+  bool _disposed = false;
   
   bool get isLoading => _isLoading;
   bool get isOtpSent => _isOtpSent;
@@ -20,27 +21,40 @@ class SignUpProvider with ChangeNotifier {
   
   final FlutterSecureStorage _storage = FlutterSecureStorage();
 
+  // Override dispose to mark the provider as disposed
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  // Safe way to call notifyListeners
+  void _notifyListeners() {
+    if (!_disposed) {
+      notifyListeners();
+    }
+  }
+
   Future<bool> sendSignUpRequest(String name, String email, String password) async {
-    // Input Validations
     if (!Validators.validateName(name)) {
       _errorMessage = 'Name must be at least 2 characters';
-      notifyListeners();
+      _notifyListeners();
       return false;
     }
     if (!Validators.validateEmail(email)) {
       _errorMessage = 'Invalid email format';
-      notifyListeners();
+      _notifyListeners();
       return false;
     }
     if (!Validators.validatePassword(password)) {
       _errorMessage = 'Password must be 8+ chars, with uppercase, lowercase & number';
-      notifyListeners();
+      _notifyListeners();
       return false;
     }
     
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    _notifyListeners();
     
     try {
       final response = await http.post(
@@ -53,8 +67,10 @@ class SignUpProvider with ChangeNotifier {
         }),
       ).timeout(
         Duration(seconds: 15),
-        onTimeout: () => throw Exception('Request timed out'),
+        onTimeout: () => throw TimeoutException('Request timed out'),
       );
+
+      if (_disposed) return false; // Check if disposed before updating state
       
       _isLoading = false;
       
@@ -63,25 +79,28 @@ class SignUpProvider with ChangeNotifier {
         final token = responseBody['data']['token'];
         await _storage.write(key: 'auth_token', value: token);
         
-        await sendOtp();
-        return true;
+        return await sendOtp();
       } else {
         _errorMessage = 'Registration failed: ${response.body}';
-        notifyListeners();
+        _notifyListeners();
         return false;
       }
     } catch (e) {
+      if (_disposed) return false; // Check if disposed before updating state
+      
       _errorMessage = 'Unexpected error: ${e.toString()}';
       _isLoading = false;
-      notifyListeners();
+      _notifyListeners();
       return false;
     }
   }
 
   Future<bool> sendOtp() async {
+    if (_disposed) return false;
+    
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    _notifyListeners();
     
     try {
       final token = await _storage.read(key: 'auth_token');
@@ -93,24 +112,28 @@ class SignUpProvider with ChangeNotifier {
         },
       ).timeout(
         Duration(seconds: 15),
-        onTimeout: () => throw Exception('OTP send timed out'),
+        onTimeout: () => throw TimeoutException('OTP send timed out'),
       );
+
+      if (_disposed) return false; // Check if disposed before updating state
       
       _isLoading = false;
       
       if (response.statusCode == 200) {
         _isOtpSent = true;
-        notifyListeners();
+        _notifyListeners();
         return true;
       } else {
         _errorMessage = 'Failed to send OTP';
-        notifyListeners();
+        _notifyListeners();
         return false;
       }
     } catch (e) {
+      if (_disposed) return false; // Check if disposed before updating state
+      
       _errorMessage = 'Unexpected error: ${e.toString()}';
       _isLoading = false;
-      notifyListeners();
+      _notifyListeners();
       return false;
     }
   }
@@ -118,13 +141,13 @@ class SignUpProvider with ChangeNotifier {
   Future<bool> verifyOtp(String otp) async {
     if (!Validators.validateOtp(otp)) {
       _errorMessage = 'Invalid OTP format';
-      notifyListeners();
+      _notifyListeners();
       return false;
     }
     
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    _notifyListeners();
     
     try {
       final token = await _storage.read(key: 'auth_token');
@@ -137,24 +160,28 @@ class SignUpProvider with ChangeNotifier {
         body: json.encode({'otp': otp}),
       ).timeout(
         Duration(seconds: 15),
-        onTimeout: () => throw Exception('OTP verification timed out'),
+        onTimeout: () => throw TimeoutException('OTP verification timed out'),
       );
+
+      if (_disposed) return false; // Check if disposed before updating state
       
       _isLoading = false;
       
       if (response.statusCode == 200) {
         _isOtpVerified = true;
-        notifyListeners();
+        _notifyListeners();
         return true;
       } else {
         _errorMessage = 'Invalid OTP';
-        notifyListeners();
+        _notifyListeners();
         return false;
       }
     } catch (e) {
+      if (_disposed) return false; // Check if disposed before updating state
+      
       _errorMessage = 'Unexpected error: ${e.toString()}';
       _isLoading = false;
-      notifyListeners();
+      _notifyListeners();
       return false;
     }
   }

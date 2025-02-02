@@ -6,6 +6,7 @@ import 'package:mindle/helpers/notification.dart';
 import 'package:mindle/models/goals.dart';
 import 'package:mindle/models/reminder_db.dart';
 import 'package:mindle/models/reminder_model.dart';
+import 'package:mindle/utils/color.dart';
 
 class ReminderPage extends StatefulWidget {
   const ReminderPage({super.key});
@@ -15,13 +16,7 @@ class ReminderPage extends StatefulWidget {
 }
 
 class _ReminderPageState extends State<ReminderPage> {
-  final List<String> _soundOptions = [
-    'Default',
-    'Chime',
-    'Gentle Alarm',
-    'Bell',
-    'Electronic',
-  ];
+final List<String> _soundOptions = NotificationService.soundMap.keys.toList();
   final List<String> _frequencyOptions = [
     'Once',
     'Twice',
@@ -142,7 +137,7 @@ void _saveReminder() async {
     final isSmallScreen = size.height < 600;
 
     // Colors
-    final softPurple = const Color(0xFF8D5BFF);
+   
     final grey = const Color(0xFFF5F5F5);
     final darkPurple = const Color(0xFF2D2642);
 
@@ -186,6 +181,7 @@ void _saveReminder() async {
                   children: [
                     SizedBox(height: verticalSpacing),
                     TextField(
+                      controller: _titleController,
                       decoration: InputDecoration(
                         hintText: 'Title',
                         hintStyle: TextStyle(color: Colors.grey[600]),
@@ -335,7 +331,7 @@ void _saveReminder() async {
                     child: ElevatedButton(
                       onPressed: _saveReminder,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: softPurple,
+                        backgroundColor: AppTheme.upeiRed,
                         padding: EdgeInsets.symmetric(
                           vertical: isSmallScreen ? 12 : 16,
                         ),

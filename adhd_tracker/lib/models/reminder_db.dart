@@ -6,6 +6,8 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
+
+static const String tableReminders = 'reminders';
   DatabaseHelper._init();
 
   Future<Database> get database async {
@@ -27,7 +29,7 @@ class DatabaseHelper {
 
   Future<void> _createDB(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE reminders(
+      CREATE TABLE $tableReminders(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         frequency TEXT NOT NULL,
@@ -42,19 +44,19 @@ class DatabaseHelper {
 
   Future<int> insertReminder(Reminder reminder) async {
     final db = await instance.database;
-    return await db.insert('reminder', reminder.toMap());
+    return await db.insert(tableReminders, reminder.toMap());
   }
 
   Future<List<Reminder>> getAllReminder() async {
     final db = await instance.database;
-    final List<Map<String, dynamic>> maps = await db.query('reminder');
+    final List<Map<String, dynamic>> maps = await db.query(tableReminders);
     return List.generate(maps.length, (i) => Reminder.fromMap(maps[i]));
   }
 
   Future<int> updateReminderCompletion(int id, bool isCompleted) async {
     final db = await instance.database;
     return await db.update(
-      'reminder',
+      tableReminders,
       {'isCompleted': isCompleted ? 1 : 0},
       where: 'id = ?',
       whereArgs: [id],
@@ -64,7 +66,7 @@ class DatabaseHelper {
   Future<int> deleteReminder(int id) async {
     final db = await instance.database;
     return await db.delete(
-      'reminder',
+      tableReminders,
       where: 'id = ?',
       whereArgs: [id],
     );

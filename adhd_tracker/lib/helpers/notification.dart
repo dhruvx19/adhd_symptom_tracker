@@ -1,22 +1,62 @@
+import 'dart:io';
+
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:mindle/utils/color.dart';
 
 class NotificationService {
+   static const String REMINDER_CHANNEL_KEY = 'reminder_channel';
+  static String _getSoundPath(String soundName) {
+    if (Platform.isAndroid) {
+      return 'resource://raw/res_$soundName';
+    } else {
+      return 'resource://raw/$soundName';
+    }
+  }
+
+  static final Map<String, String> soundMap = {
+    'Default': _getSoundPath('default_sound'),
+    'Chime': _getSoundPath('chime'),
+    'Water': _getSoundPath('water'),
+    'Bell': _getSoundPath('bell'),
+    'Electronic': _getSoundPath('electronic'),
+  };
   static Future<bool> initializeNotifications() async {
     return await AwesomeNotifications().initialize(
-      null,
+      'resource://drawable/notification_icon',
       [
         NotificationChannel(
-          channelKey: 'reminder_channel',
+          channelKey: REMINDER_CHANNEL_KEY,
           channelName: 'Reminder Notifications',
           channelDescription: 'Channel for reminder notifications',
-          defaultColor: const Color(0xFF8D5BFF),
-          ledColor: const Color(0xFF8D5BFF),
+          defaultColor: AppTheme.upeiRed,
+          ledColor: AppTheme.upeiRed,
           importance: NotificationImportance.High,
-          soundSource: 'resource://raw/res_water',
+          soundSource: soundMap['Default'],
           playSound: true,
         ),
       ],
+    );
+  }
+
+  static Future<void> scheduleDailyReminder() async {
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: 0, // Fixed ID for daily reminder
+        channelKey: REMINDER_CHANNEL_KEY,
+        title: 'Daily Check-in',
+        body: "It's time for your daily mindfulness check-in!",
+        notificationLayout: NotificationLayout.Default,
+        category: NotificationCategory.Reminder,
+        bigPicture: 'resource://drawable/notification_icon',
+        largeIcon: 'resource://drawable/notification_icon',
+      ),
+      schedule: NotificationCalendar(
+        hour: 17, // 12 PM
+        minute: 42,
+        second: 0,
+        repeats: true, // Repeat daily
+      ),
     );
   }
 
@@ -30,8 +70,7 @@ class NotificationService {
         builder: (context) => AlertDialog(
           title: const Text('Notification Permission'),
           content: const Text(
-            'To receive reminders, please allow notification permissions. Would you like to enable notifications?'
-          ),
+              'To receive reminders, please allow notification permissions. Would you like to enable notifications?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -46,7 +85,8 @@ class NotificationService {
       );
 
       if (userResponse == true) {
-        return await AwesomeNotifications().requestPermissionToSendNotifications();
+        return await AwesomeNotifications()
+            .requestPermissionToSendNotifications();
       }
       return false;
     }
@@ -68,7 +108,8 @@ class NotificationService {
       if (!hasPermission) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Notifications permission is required to set reminders'),
+            content:
+                Text('Notifications permission is required to set reminders'),
             duration: Duration(seconds: 4),
           ),
         );
@@ -83,12 +124,14 @@ class NotificationService {
         selectedTime.minute,
       );
 
+      final intervalMinutes = _getIntervalMinutes(frequency);
+
       final int notificationCount = _getNotificationCount(frequency);
 
       // Schedule notifications based on frequency
       for (int i = 0; i < notificationCount; i++) {
         final int minutesInterval = i * 5;
-        
+
         final created = await AwesomeNotifications().createNotification(
           content: NotificationContent(
             id: DateTime.now().millisecondsSinceEpoch.remainder(100000) + i,
@@ -97,6 +140,9 @@ class NotificationService {
             body: notes,
             notificationLayout: NotificationLayout.Default,
             category: NotificationCategory.Reminder,
+            customSound: soundMap[sound],
+            bigPicture: 'resource://drawable/notification_icon',
+            largeIcon: 'resource://drawable/notification_icon',
           ),
           schedule: NotificationCalendar(
             year: scheduledDate.year,
@@ -107,6 +153,7 @@ class NotificationService {
             second: 0,
             millisecond: 0,
             repeats: false,
+            allowWhileIdle: true,
           ),
         );
 
@@ -114,7 +161,7 @@ class NotificationService {
           throw Exception('Failed to schedule notification');
         }
       }
-      
+
       return true;
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -137,6 +184,19 @@ class NotificationService {
         return 3;
       default:
         return 1;
+    }
+  }
+
+  static int _getIntervalMinutes(String frequency) {
+    switch (frequency.toLowerCase()) {
+      case 'once':
+        return 0;
+      case 'twice':
+        return 30;
+      case 'thrice':
+        return 20;
+      default:
+        return 0;
     }
   }
 

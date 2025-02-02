@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ProfileService {
-  static const String baseUrl = 'http://10.0.2.2:2000/api/v1/users';
+  static const String baseUrl = 'https://freelance-backend-xx6e.onrender.com/api/v1/users';
 
   final FlutterSecureStorage _storage = FlutterSecureStorage();
 

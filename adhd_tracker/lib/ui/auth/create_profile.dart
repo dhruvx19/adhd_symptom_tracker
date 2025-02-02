@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mindle/providers.dart/profile_provider.dart';
 import 'package:mindle/providers.dart/profile_services.dart';
 import 'package:mindle/ui/auth/login.dart';
+import 'package:mindle/utils/color.dart';
 import 'package:provider/provider.dart';
 
 class ProfileCreationPage extends StatefulWidget {
@@ -15,7 +18,7 @@ class ProfileCreationPage extends StatefulWidget {
 }
 
 class _ProfileCreationPageState extends State<ProfileCreationPage> {
-  final Color softPurple = const Color(0xFF8D5BFF);
+  
   final Color darkPurple = const Color(0xFF2D2642);
 
   // Predefined lists remain the same
@@ -116,13 +119,17 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
                 .addStrategy(_selectedStrategies.first.toString());
 
             if (success) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-              );
-              return;
-            }
+            // Mark profile creation as complete
+            final storage = FlutterSecureStorage();
+            await storage.delete(key: 'profile_creation_pending');
+            
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+            return;
           }
+        }
           break;
       }
 
@@ -144,28 +151,73 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
       SnackBar(content: Text(message)),
     );
   }
+  
 
   Future<void> _pickProfileImage() async {
     try {
       final picker = ImagePicker();
-      final XFile? pickedFile = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
 
-      if (pickedFile != null) {
-        setState(() {
-          _profileImage = File(pickedFile.path);
-          _base64Image = null; // Reset base64 when new image is picked
-        });
-        // Convert to base64 immediately after picking
-        _base64Image = await _convertImageToBase64();
+      // Show platform-specific picker dialog
+      if (Platform.isIOS) {
+        showCupertinoModalPopup(
+          context: context,
+          builder: (BuildContext context) => CupertinoActionSheet(
+            actions: <CupertinoActionSheetAction>[
+              CupertinoActionSheetAction(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.camera,
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    imageQuality: 85,
+                  );
+                  _handlePickedImage(image);
+                },
+                child: const Text('Take Photo'),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.gallery,
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    imageQuality: 85,
+                  );
+                  _handlePickedImage(image);
+                },
+                child: const Text('Choose from Library'),
+              ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ),
+        );
+      } else {
+        final XFile? pickedFile = await picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 800,
+          maxHeight: 800,
+          imageQuality: 85,
+        );
+        _handlePickedImage(pickedFile);
       }
     } catch (e) {
       print('Error picking image: $e');
       _showError('Failed to pick image');
+    }
+  }
+
+  void _handlePickedImage(XFile? pickedFile) {
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+        _base64Image = null;
+      });
+      _convertImageToBase64();
     }
   }
 
@@ -220,32 +272,28 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final fontScale = size.width / 375.0;
+    final orientation = MediaQuery.of(context).orientation;
+
+    // Calculate responsive values
+    final double paddingScale = size.width / 375.0;
+    final double fontScale = size.width < 600 ? size.width / 375.0 : 1.5;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        title: Text(
+          'Complete Your Profile',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 20 * fontScale,
+          ),
+        ),
         backgroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          Text(
-            'Let\'s Tailor Your Experience: Complete Your Profile',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 12 * fontScale,
-            ),
-          ),
-          SizedBox(
+          const SizedBox(
             height: 8,
-          ),
-          Text(
-            'Step ${_currentStep + 1}/4',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 16 * fontScale,
-            ),
           ),
           _buildStepIndicators(),
           Padding(
@@ -259,9 +307,10 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
             child: _buildStepContent(),
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(22.0),
             child: _buildNavigationButton(fontScale),
           ),
+          SizedBox(height: 24,)
         ],
       ),
     );
@@ -277,7 +326,7 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: _currentStep == index ? Colors.blue : Colors.grey.shade300,
+            color: _currentStep == index ? AppTheme.upeiGreen: Colors.grey.shade300,
           ),
         );
       }),
@@ -319,7 +368,7 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          backgroundColor: softPurple,
+          backgroundColor: AppTheme.upeiRed,
         ),
         child: _isLoading
             ? const SizedBox(
@@ -358,7 +407,7 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
           ElevatedButton(
             onPressed: _pickProfileImage,
             style: ElevatedButton.styleFrom(
-              backgroundColor: softPurple,
+              backgroundColor: AppTheme.upeiRed,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),

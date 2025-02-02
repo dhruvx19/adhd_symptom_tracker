@@ -1,4 +1,3 @@
-// pages/reminder_list_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -14,51 +13,188 @@ class ReminderListPage extends StatefulWidget {
 }
 
 class _ReminderListPageState extends State<ReminderListPage> {
-  late Future<List<Reminder>> _reminderFuture;
-   List<Reminder> _reminder = [];
+  late Future<List<Reminder>> _remindersFuture;
 
   @override
   void initState() {
     super.initState();
-    _refreshReminder();
+    _refreshReminders();
   }
 
-  void _refreshReminder() {
+  void _refreshReminders() {
     setState(() {
-      _reminderFuture = DatabaseHelper.instance.getAllReminder();
+      _remindersFuture = DatabaseHelper.instance.getAllReminder();
     });
   }
 
   Future<void> _toggleReminderCompletion(Reminder reminder) async {
-    await DatabaseHelper.instance
-        .updateReminderCompletion(reminder.id!, !reminder.isCompleted);
-    _refreshReminder();
+    try {
+      await DatabaseHelper.instance
+          .updateReminderCompletion(reminder.id!, !reminder.isCompleted);
+      _refreshReminders();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update reminder: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _deleteReminder(Reminder reminder) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Reminder'),
-        content: Text('Are you sure you want to delete this reminder?'),
+        title: const Text('Delete Reminder'),
+        content: const Text('Are you sure you want to delete this reminder?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text('Delete'),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
 
     if (confirmed == true) {
-      await DatabaseHelper.instance.deleteReminder(reminder.id!);
-      _refreshReminder();
+      try {
+        await DatabaseHelper.instance.deleteReminder(reminder.id!);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Reminder deleted successfully'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        _refreshReminders();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete reminder: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.notifications_none, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'No reminders yet',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap the + button to create a reminder',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReminderCard(Reminder reminder) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _toggleReminderCompletion(reminder),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF8D5BFF),
+                    width: 2,
+                  ),
+                  color: reminder.isCompleted ? const Color(0xFF8D5BFF) : Colors.white,
+                ),
+                child: reminder.isCompleted
+                    ? const Icon(
+                        Icons.check,
+                        size: 16,
+                        color: Colors.white,
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      reminder.name,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        decoration: reminder.isCompleted
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: reminder.isCompleted ? Colors.grey : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${DateFormat('MMM d, y').format(reminder.startDate)} at ${reminder.scheduledTime.format(context)}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (reminder.notes.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        reminder.notes,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete_outline, color: Colors.red[300]),
+                onPressed: () => _deleteReminder(reminder),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -72,7 +208,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
         title: Text(
           'My Reminders',
           style: GoogleFonts.lato(
-            textStyle: TextStyle(
+            textStyle: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Color(0xFF2D2642),
@@ -81,141 +217,69 @@ class _ReminderListPageState extends State<ReminderListPage> {
         ),
       ),
       body: FutureBuilder<List<Reminder>>(
-        future: _reminderFuture,
+        future: _remindersFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final reminder = snapshot.data ?? [];
-
-          if (reminder.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_none,
-                      size: 64, color: Colors.grey[400]),
-                  SizedBox(height: 16),
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
                   Text(
-                    'No reminders yet',
+                    'Error loading reminders',
                     style: TextStyle(
                       fontSize: 18,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    snapshot.error.toString(),
+                    style: TextStyle(
+                      fontSize: 14,
                       color: Colors.grey[600],
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
             );
           }
 
+          final reminders = snapshot.data ?? [];
+
+          if (reminders.isEmpty) {
+            return _buildEmptyState();
+          }
+
           return ListView.builder(
-            padding: EdgeInsets.all(16),
-            itemCount: reminder.length,
-            itemBuilder: (context, index) {
-              final reminder = _reminder[index];
-              return Card(
-                elevation: 2,
-                margin: EdgeInsets.only(bottom: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => _toggleReminderCompletion(reminder),
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Color(0xFF8D5BFF),
-                              width: 2,
-                            ),
-                            color:
-                                reminder.isCompleted ? Color(0xFF8D5BFF) : Colors.white,
-                          ),
-                          child: reminder.isCompleted
-                              ? Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: Colors.white,
-                                )
-                              : null,
-                        ),
-                        SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                reminder.name,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: reminder.isCompleted
-                                      ? TextDecoration.lineThrough
-                                      : null,
-                                  color: reminder.isCompleted
-                                      ? Colors.grey
-                                      : Colors.black,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                '${DateFormat('MMM d, y').format(reminder.startDate)} at ${reminder.scheduledTime.format(context)}',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
-                              ),
-                              if (reminder.notes.isNotEmpty) ...[
-                                SizedBox(height: 4),
-                                Text(
-                                  reminder.notes,
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete_outline,
-                              color: Colors.red[300]),
-                          onPressed: () => _deleteReminder(reminder),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
+            padding: const EdgeInsets.all(16),
+            itemCount: reminders.length,
+            itemBuilder: (context, index) => _buildReminderCard(reminders[index]),
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await  Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ReminderPage(),
-                          ),
-                        );
-          _refreshReminder();
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ReminderPage(),
+            ),
+          );
+          _refreshReminders();
         },
-        backgroundColor: Color(0xFF8D5BFF),
-        child: Icon(Icons.add),
+        backgroundColor: const Color(0xFF8D5BFF),
+        child: const Icon(Icons.add),
       ),
     );
   }
