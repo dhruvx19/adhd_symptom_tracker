@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:mindle/models/database_helper.dart';
-import 'package:mindle/models/goals.dart';
-import 'package:mindle/ui/home/goals/add_goal.dart';
-import 'package:mindle/utils/color.dart';
+import 'package:ADHD_Tracker/models/database_helper.dart';
+import 'package:ADHD_Tracker/models/goals.dart';
+import 'package:ADHD_Tracker/ui/home/goals/add_goal.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 
 class GoalsPage extends StatefulWidget {
   const GoalsPage({super.key});
@@ -14,17 +16,34 @@ class GoalsPage extends StatefulWidget {
 }
 
 class _GoalsPageState extends State<GoalsPage> {
-  late Future<List<Goal>> _goalsFuture;
+   late Future<List<Goal>> _goalsFuture;
+  final ScrollController _scrollController = ScrollController();
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _refreshGoals();
+     _scrollController.addListener(_onScrollStopped);
+  }
+@override
+  void dispose() {
+    _scrollController.dispose();
+    _debounce?.cancel();
+    super.dispose();
   }
 
   void _refreshGoals() {
     setState(() {
       _goalsFuture = DatabaseHelper.instance.getAllGoals();
+    });
+  }
+
+  void _onScrollStopped() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 100), () {
+      if (!mounted) return;
+      setState(() {});
     });
   }
 
@@ -104,9 +123,7 @@ class _GoalsPageState extends State<GoalsPage> {
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -118,56 +135,27 @@ class _GoalsPageState extends State<GoalsPage> {
                 shape: BoxShape.circle,
                 color: AppTheme.upeiRed.withOpacity(0.1),
               ),
-              child: const Icon(
-                Icons.flag_rounded,
-                color: AppTheme.upeiRed,
-                size: 20,
-              ),
+              child: const Icon(Icons.flag_rounded, color: AppTheme.upeiRed, size: 20),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    goal.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
+                  Text(goal.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Text(
-                    'Frequency: ${goal.frequency}',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
+                  Text('Frequency: ${goal.frequency}', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
                   const SizedBox(height: 4),
-                  Text(
-                    'Started: ${goal.startDate}',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
+                  Text('Started: ${goal.startDate}', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
                   if (goal.notes.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text(
-                      goal.notes,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                    ),
+                    Text(goal.notes, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
                   ],
                 ],
               ),
             ),
             IconButton(
-              icon:const  Icon(Icons.delete_outline, color: AppTheme.upeiGreen),
+              icon: const Icon(Icons.delete_outline, color: AppTheme.upeiGreen),
               onPressed: () => _deleteGoal(goal),
             ),
           ],
@@ -175,7 +163,6 @@ class _GoalsPageState extends State<GoalsPage> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -187,11 +174,7 @@ class _GoalsPageState extends State<GoalsPage> {
         title: Text(
           'My Goals',
           style: GoogleFonts.lato(
-            textStyle: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2D2642),
-            ),
+            textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2D2642)),
           ),
         ),
       ),
@@ -201,64 +184,45 @@ class _GoalsPageState extends State<GoalsPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.red,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading goals',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[800],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    snapshot.error.toString(),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
+            return Center(child: Text('Error loading goals: ${snapshot.error}', textAlign: TextAlign.center));
           }
-
           final goals = snapshot.data ?? [];
-
           if (goals.isEmpty) {
-            return _buildEmptyState();
+            return Center(child: Text('No goals set yet. Tap + to add one.'));
           }
-
           return ListView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.all(16),
             itemCount: goals.length,
             itemBuilder: (context, index) => _buildGoalCard(goals[index]),
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const NewGoalPage(),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SafeArea(
+          child: ElevatedButton(
+            onPressed: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (context) => const NewGoalPage()));
+              _refreshGoals();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.upeiRed,
+              minimumSize: Size(double.infinity, MediaQuery.of(context).size.height * 0.07),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
             ),
-          );
-          _refreshGoals();
-        },
-        backgroundColor: AppTheme.upeiRed,
-        child: const Icon(Icons.add),
+            child: Text(
+              'Add Goal',
+              style: TextStyle(
+                fontSize: 18 * MediaQuery.of(context).textScaleFactor,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

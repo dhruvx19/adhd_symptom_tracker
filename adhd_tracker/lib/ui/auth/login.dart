@@ -1,11 +1,12 @@
+import 'package:ADHD_Tracker/ui/forget_password.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mindle/providers.dart/login_provider.dart';
-import 'package:mindle/providers.dart/signup_provider.dart';
-import 'package:mindle/ui/auth/create_profile.dart';
-import 'package:mindle/ui/auth/signin.dart';
-import 'package:mindle/ui/home/mood.dart';
-import 'package:mindle/utils/color.dart';
+import 'package:ADHD_Tracker/providers.dart/login_provider.dart';
+import 'package:ADHD_Tracker/providers.dart/signup_provider.dart';
+import 'package:ADHD_Tracker/ui/auth/create_profile.dart';
+import 'package:ADHD_Tracker/ui/auth/signin.dart';
+import 'package:ADHD_Tracker/ui/home/mood.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -20,7 +21,6 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
- 
   final Color darkPurple = const Color(0xFF2D2642);
   bool isPasswordVisible = false;
 
@@ -30,9 +30,10 @@ class _LoginPageState extends State<LoginPage> {
     _passwordController.dispose();
     super.dispose();
   }
+
   void _navigateToMoodPage(BuildContext context) {
     if (!mounted) return;
-        Navigator.pushReplacement(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => MultiProvider(
@@ -52,11 +53,9 @@ class _LoginPageState extends State<LoginPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final loginProvider = Provider.of<LoginProvider>(context, listen: false);
-    
+
     final success = await loginProvider.login(
-      _emailController.text.trim(), 
-      _passwordController.text
-    );
+        _emailController.text.trim(), _passwordController.text);
 
     if (!mounted) return;
 
@@ -117,11 +116,11 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     Center(
                       child: Text(
-                        'mindle',
+                        'ADHD Tracker',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'Yaro',
-                          fontSize: 60 * fontScale,
+                          fontSize: 40 * fontScale,
                           fontWeight: FontWeight.bold,
                           color: darkPurple,
                           letterSpacing: -0.5,
@@ -184,7 +183,9 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                            isPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                             color: Colors.grey[600],
                           ),
                           onPressed: () {
@@ -200,7 +201,12 @@ class _LoginPageState extends State<LoginPage> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
-                          // Handle "Forgot Password" action
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ForgotPasswordScreen(),
+                            ),
+                          );
                         },
                         child: Text(
                           'Forgot Password?',
@@ -216,9 +222,9 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: provider.isLoading 
-                          ? null 
-                          : () => _performLogin(context),
+                        onPressed: provider.isLoading
+                            ? null
+                            : () => _performLogin(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.upeiRed,
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -227,22 +233,23 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         child: provider.isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                              )
+                            : Text(
+                                'Login',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16 * fontScale,
+                                ),
                               ),
-                            )
-                          : Text(
-                              'Login',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16 * fontScale,
-                              ),
-                            ),
                       ),
                     ),
                     const SizedBox(height: 32),

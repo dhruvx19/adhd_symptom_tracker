@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mindle/providers.dart/signup_provider.dart';
-import 'package:mindle/ui/auth/create_profile.dart';
-import 'package:mindle/ui/auth/login.dart';
-import 'package:mindle/utils/color.dart';
+import 'package:ADHD_Tracker/providers.dart/signup_provider.dart';
+import 'package:ADHD_Tracker/ui/auth/create_profile.dart';
+import 'package:ADHD_Tracker/ui/auth/login.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 import 'package:provider/provider.dart';
 
 import '../../utils/constants.dart';
@@ -128,10 +128,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       children: [
                         Center(
                           child: Text(
-                            'mindle',
+                            'ADHD Tracker',
                             style: TextStyle(
                               fontFamily: 'Yaro',
-                              fontSize: 60 * fontScale,
+                              fontSize: 40 * fontScale,
                               fontWeight: FontWeight.bold,
                               color: darkPurple,
                               letterSpacing: -0.5,

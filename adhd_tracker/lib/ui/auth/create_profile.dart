@@ -4,10 +4,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mindle/providers.dart/profile_provider.dart';
-import 'package:mindle/providers.dart/profile_services.dart';
-import 'package:mindle/ui/auth/login.dart';
-import 'package:mindle/utils/color.dart';
+import 'package:ADHD_Tracker/providers.dart/profile_provider.dart';
+import 'package:ADHD_Tracker/providers.dart/profile_services.dart';
+import 'package:ADHD_Tracker/ui/auth/login.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 import 'package:provider/provider.dart';
 
 class ProfileCreationPage extends StatefulWidget {

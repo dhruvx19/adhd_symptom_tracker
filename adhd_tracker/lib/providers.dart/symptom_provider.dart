@@ -75,7 +75,7 @@ class SymptomProvider extends ChangeNotifier {
     try {
       final token = await _storage.read(key: 'auth_token');
       final response = await http.post(
-        Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/users/addsymptoms'),
+        Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/symptoms/addsymptoms'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

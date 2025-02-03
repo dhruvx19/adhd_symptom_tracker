@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mindle/ui/representation/mood_representation.dart';
-import 'package:mindle/utils/color.dart';
+import 'package:ADHD_Tracker/ui/representation/mood_representation.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 import 'package:provider/provider.dart';
-import 'package:mindle/ui/home/record/medication.dart';
-import 'package:mindle/ui/home/record/symptom.dart';
+import 'package:ADHD_Tracker/ui/home/record/medication.dart';
+import 'package:ADHD_Tracker/ui/home/record/symptom.dart';
 
 class CustomCurvedNavigationBar extends StatelessWidget {
   const CustomCurvedNavigationBar({
@@ -101,7 +101,7 @@ class CustomCurvedNavigationBar extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => MoodChartScreen(),
+                        builder: (context) => SymptomLogging(),
                       ),
                     );
                   },

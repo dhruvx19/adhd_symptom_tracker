@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
-import 'package:mindle/utils/color.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 
 class NotificationService {
    static const String REMINDER_CHANNEL_KEY = 'reminder_channel';
@@ -166,7 +166,7 @@ class NotificationService {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to schedule reminder: ${e.toString()}'),
+          content: Text('You cannot create a notification for a past time. Please select a future time and try again.'),
           duration: const Duration(seconds: 4),
         ),
       );

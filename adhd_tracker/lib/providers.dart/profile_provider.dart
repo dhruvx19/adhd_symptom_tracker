@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:mindle/providers.dart/profile_services.dart';
+import 'package:ADHD_Tracker/providers.dart/profile_services.dart';
 
 class ProfileProvider extends ChangeNotifier {
   final ProfileService _service = ProfileService();

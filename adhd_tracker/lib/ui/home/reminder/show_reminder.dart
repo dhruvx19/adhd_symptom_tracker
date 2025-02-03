@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:mindle/models/reminder_db.dart';
-import 'package:mindle/models/reminder_model.dart';
-import 'package:mindle/ui/home/reminder/reminder.dart';
+import 'package:ADHD_Tracker/models/reminder_db.dart';
+import 'package:ADHD_Tracker/models/reminder_model.dart';
+import 'package:ADHD_Tracker/ui/home/reminder/reminder.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 
 class ReminderListPage extends StatefulWidget {
   const ReminderListPage({super.key});
@@ -136,10 +137,10 @@ class _ReminderListPageState extends State<ReminderListPage> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFF8D5BFF),
+                    color: AppTheme.upeiRed,
                     width: 2,
                   ),
-                  color: reminder.isCompleted ? const Color(0xFF8D5BFF) : Colors.white,
+                  color: reminder.isCompleted ? AppTheme.upeiRed : Colors.white,
                 ),
                 child: reminder.isCompleted
                     ? const Icon(
@@ -268,8 +269,11 @@ class _ReminderListPageState extends State<ReminderListPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
+       bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SafeArea(
+          child: ElevatedButton(
+            onPressed: () async {
           await Navigator.push(
             context,
             MaterialPageRoute(
@@ -278,8 +282,22 @@ class _ReminderListPageState extends State<ReminderListPage> {
           );
           _refreshReminders();
         },
-        backgroundColor: const Color(0xFF8D5BFF),
-        child: const Icon(Icons.add),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.upeiRed,
+              minimumSize: Size(double.infinity, MediaQuery.of(context).size.height * 0.07),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+            ),
+            child: Text(
+              'Add Reminder',
+              style: TextStyle(
+                fontSize: 18 * MediaQuery.of(context).textScaleFactor,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

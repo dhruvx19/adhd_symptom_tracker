@@ -1,5 +1,5 @@
 // models/database_helper.dart
-import 'package:mindle/models/reminder_model.dart';
+import 'package:ADHD_Tracker/models/reminder_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 class DatabaseHelper {

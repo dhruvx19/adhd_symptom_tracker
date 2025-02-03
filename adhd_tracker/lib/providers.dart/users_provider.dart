@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:mindle/models/user_model.dart';
+import 'package:ADHD_Tracker/models/user_model.dart';
 
 class UserProvider extends ChangeNotifier {
   ProfileData? _profileData;

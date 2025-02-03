@@ -1,6 +1,6 @@
 {
-    "name": "mindle",
-    "short_name": "mindle",
+    "name": "ADHD_Tracker",
+    "short_name": "ADHD_Tracker",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

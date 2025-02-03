@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mindle/helpers/theme.dart';
-import 'package:mindle/providers.dart/users_provider.dart';
+import 'package:ADHD_Tracker/helpers/theme.dart';
+import 'package:ADHD_Tracker/providers.dart/users_provider.dart';
 import 'package:provider/provider.dart';
 
 class PersonalInformationPage extends StatelessWidget {

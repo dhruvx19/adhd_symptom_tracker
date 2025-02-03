@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "mindle" "\0"
+            VALUE "FileDescription", "ADHD_Tracker" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "mindle" "\0"
+            VALUE "InternalName", "ADHD_Tracker" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "mindle.exe" "\0"
-            VALUE "ProductName", "mindle" "\0"
+            VALUE "OriginalFilename", "ADHD_Tracker.exe" "\0"
+            VALUE "ProductName", "ADHD_Tracker" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

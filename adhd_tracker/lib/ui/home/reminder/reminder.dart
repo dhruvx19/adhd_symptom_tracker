@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mindle/helpers/notification.dart';
-import 'package:mindle/models/goals.dart';
-import 'package:mindle/models/reminder_db.dart';
-import 'package:mindle/models/reminder_model.dart';
-import 'package:mindle/utils/color.dart';
+import 'package:ADHD_Tracker/helpers/notification.dart';
+import 'package:ADHD_Tracker/models/goals.dart';
+import 'package:ADHD_Tracker/models/reminder_db.dart';
+import 'package:ADHD_Tracker/models/reminder_model.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 
 class ReminderPage extends StatefulWidget {
   const ReminderPage({super.key});

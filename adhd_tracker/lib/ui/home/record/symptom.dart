@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mindle/providers.dart/symptom_provider.dart';
-import 'package:mindle/utils/color.dart';
+import 'package:ADHD_Tracker/providers.dart/symptom_provider.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 import 'package:provider/provider.dart';
-import 'package:mindle/ui/home/record/medication.dart';
+import 'package:ADHD_Tracker/ui/home/record/medication.dart';
 
 class SymptomLogging extends StatefulWidget {
   const SymptomLogging({super.key});

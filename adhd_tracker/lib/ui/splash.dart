@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mindle/helpers/notification.dart';
-import 'package:mindle/utils/color.dart';
+import 'package:ADHD_Tracker/helpers/notification.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 import 'package:provider/provider.dart';
-import 'package:mindle/providers.dart/login_provider.dart';
-import 'package:mindle/ui/auth/login.dart';
-import 'package:mindle/ui/home/mood.dart';
-import 'package:mindle/ui/home/home.dart';
+import 'package:ADHD_Tracker/providers.dart/login_provider.dart';
+import 'package:ADHD_Tracker/ui/auth/login.dart';
+import 'package:ADHD_Tracker/ui/home/mood.dart';
+import 'package:ADHD_Tracker/ui/home/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -183,10 +183,10 @@ class _SplashScreenState extends State<SplashScreen>
                             child: Column(
                               children: [
                                 Text(
-                                  'mindle',
+                                  'ADHD_Tracker',
                                   style: TextStyle(
                                     fontFamily: 'Yaro',
-                                    fontSize: 54 * fontScale,
+                                    fontSize: 44 * fontScale,
                                     fontWeight: FontWeight.bold,
                                     color: AppTheme.upeiRed,
                                     letterSpacing: -0.5,

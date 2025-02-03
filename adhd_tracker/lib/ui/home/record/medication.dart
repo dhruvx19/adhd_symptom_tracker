@@ -1,9 +1,9 @@
-// medication_logging_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mindle/providers.dart/medication_provider.dart';
-import 'package:mindle/utils/color.dart';
+import 'package:ADHD_Tracker/providers.dart/medication_provider.dart';
+import 'package:ADHD_Tracker/utils/color.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class MedicationLoggingPage extends StatefulWidget {
   const MedicationLoggingPage({Key? key}) : super(key: key);
@@ -17,6 +17,7 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
   late TextEditingController dosageController;
   late TextEditingController timeController;
   late TextEditingController effectsController;
+  late TextEditingController dateController;
 
   @override
   void initState() {
@@ -25,6 +26,15 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
     dosageController = TextEditingController();
     timeController = TextEditingController();
     effectsController = TextEditingController();
+    dateController = TextEditingController(
+      text: DateFormat('yyyy-MM-dd').format(DateTime.now())
+    );
+
+    // Initialize the provider with the current date
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<MedicationProvider>(context, listen: false);
+      provider.updateDate(dateController.text);
+    });
   }
 
   @override
@@ -33,14 +43,30 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
     dosageController.dispose();
     timeController.dispose();
     effectsController.dispose();
+    dateController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectDate(BuildContext context, MedicationProvider provider) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2026),
+    );
+    if (picked != null) {
+      final formattedDate = DateFormat('yyyy-MM-dd').format(picked);
+      setState(() {
+        dateController.text = formattedDate;
+      });
+      provider.updateDate(formattedDate);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final fontScale = size.width / 375.0;
-
     final darkPurple = const Color(0xFF2D2642);
 
     return Scaffold(
@@ -73,6 +99,11 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
                   icon: Icons.medication,
                   controller: medicationController,
                   onChanged: provider.updateMedicationName,
+                ),
+                const SizedBox(height: 16),
+                _buildDateField(
+                  context: context,
+                  provider: provider,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
@@ -111,7 +142,8 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
                           if (medicationController.text.isEmpty ||
                               dosageController.text.isEmpty ||
                               timeController.text.isEmpty ||
-                              effectsController.text.isEmpty) {
+                              effectsController.text.isEmpty ||
+                              dateController.text.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Please fill in all fields'),
@@ -172,6 +204,39 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
           onChanged: onChanged,
           decoration: InputDecoration(
             prefixIcon: Icon(icon),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            filled: true,
+            fillColor: Colors.grey[100],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateField({
+    required BuildContext context,
+    required MedicationProvider provider,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Date',
+          style: GoogleFonts.lato(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: dateController,
+          readOnly: true,
+          onTap: () => _selectDate(context, provider),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.calendar_today),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),

@@ -2,14 +2,16 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:mindle/helpers/theme.dart';
-import 'package:mindle/providers.dart/login_provider.dart';
-import 'package:mindle/providers.dart/users_provider.dart';
-import 'package:mindle/services/change_pass.dart';
-import 'package:mindle/ui/auth/login.dart';
-import 'package:mindle/ui/personal_info.dart';
+import 'package:ADHD_Tracker/helpers/theme.dart';
+import 'package:ADHD_Tracker/providers.dart/login_provider.dart';
+import 'package:ADHD_Tracker/providers.dart/users_provider.dart';
+import 'package:ADHD_Tracker/services/change_pass.dart';
+import 'package:ADHD_Tracker/ui/auth/login.dart';
+import 'package:ADHD_Tracker/ui/personal_info.dart';
+import 'package:ADHD_Tracker/ui/representation/mood_representation.dart';
+import 'package:ADHD_Tracker/ui/settings/resources.dart';
 import 'package:provider/provider.dart';
-import 'package:mindle/models/user_model.dart';
+import 'package:ADHD_Tracker/models/user_model.dart';
 import 'package:share_plus/share_plus.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -181,12 +183,42 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const Divider(),
                 ListTile(
+                  leading: const Icon(Icons.bar_chart),
+                  title: const Text('Records'),
+                  subtitle: const Text('View progress and reports'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MoodChartScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.web),
+                  title: const Text('Resources'),
+                  subtitle: Text('Helpful Resources'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ResourcesPage
+                        (),
+                      ),
+                    );
+                  },
+                ),
+                
+                const Divider(),
+                ListTile(
                   leading: const Icon(Icons.share),
                   title: const Text('Share the app'),
                   onTap: () {
                     Share.share(
-                      'Check out Mindle App! It helps you track your medications and symptoms.',
-                      subject: 'Mindle App',
+                      'Check out ADHD_Tracker App! It helps you track your medications and symptoms.',
+                      subject: 'ADHD_Tracker App',
                     );
                   },
                 ),
