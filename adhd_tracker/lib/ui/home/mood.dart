@@ -7,8 +7,6 @@ import 'dart:convert';
 
 import 'package:provider/provider.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
 class MoodPage extends StatefulWidget {
   @override
   _MoodPageState createState() => _MoodPageState();
@@ -37,29 +35,59 @@ class _MoodPageState extends State<MoodPage> {
     setState(() => _isChecking = true);
     
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final lastRecordedDate = prefs.getString('last_mood_date');
-      final today = DateTime.now().toIso8601String().split('T')[0];
+     
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      final token = loginProvider.token;
+      
 
-     if (lastRecordedDate == today) {
-        await Future.delayed(Duration(milliseconds: 500));
-        if (!mounted) return;
-        _navigateToHome();
-      } else {
-        if (mounted) {
-          setState(() => _isChecking = false);
-        }
+    if (token == null) {
+        throw Exception('No authentication token found');
       }
-      }  catch (e) {
+
+      final today = DateTime.now();
+      final startDate = DateTime(today.year, today.month, today.day);
+      final endDate = startDate;
+
+      final url = Uri.parse(
+        'https://freelance-backend-xx6e.onrender.com/api/v1/mood/mood?startDate=${startDate.toIso8601String().split('T')[0]}&endDate=${endDate.toIso8601String().split('T')[0]}'
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        
+        if (responseData['success'] == true && 
+            responseData['data'] != null && 
+            responseData['data'].length > 0) {
+          // Mood already recorded for today
+          if (mounted) {
+            _navigateToHome();
+          }
+        } else {
+          // No mood recorded for today
+          if (mounted) {
+            setState(() => _isChecking = false);
+          }
+        }
+      } else {
+        throw Exception('Failed to check mood status');
+      }
+    } catch (e) {
       if (mounted) {
         setState(() => _isChecking = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error checking mood status')),
+          SnackBar(content: Text('Error checking mood status: ${e.toString()}')),
         );
       }
     }
   }
-
   Future<void> _recordMood() async {
     if (_selectedMood == null) return;
 
@@ -83,7 +111,7 @@ class _MoodPageState extends State<MoodPage> {
     final url = Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/mood/addmood');
     final body = jsonEncode({
       'date': DateTime.now().toIso8601String().split('T')[0],
-      'mood': _selectedMood! + 1,
+      'mood': _selectedMood!,
     });
 
     try {
@@ -97,9 +125,8 @@ class _MoodPageState extends State<MoodPage> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('last_mood_date', 
-          DateTime.now().toIso8601String().split('T')[0]);
+        
+        
 
         if (!mounted) return;
         _navigateToHome();
@@ -121,13 +148,13 @@ class _MoodPageState extends State<MoodPage> {
     }
   }
 
-  Color getMoodColor(int moodValue) {
-    switch (moodValue) {
-      case 0:
-        return Color(0xFF4CAF50);
+  Color getMoodColor(int mood) {
+    switch (mood) {
       case 1:
-        return Color(0xFFFFA726);
+        return Color(0xFF4CAF50);
       case 2:
+        return Color(0xFFFFA726);
+      case 3:
         return Color(0xFFE53935);
       default:
         return Colors.grey;
@@ -168,9 +195,9 @@ class _MoodPageState extends State<MoodPage> {
     }
 
     final List<Map<String, dynamic>> moods = [
-      {"label": "Mild - Can Function", "emoji": "😊", "value": 0},
-      {"label": "Moderate - Slowed", "emoji": "😐", "value": 1},
-      {"label": "Severe - Cannot Function", "emoji": "😢", "value": 2},
+      {"label": "Mild - Can Function", "emoji": "😊", "value": 1},
+      {"label": "Moderate - Slowed", "emoji": "😐", "value": 2},
+      {"label": "Severe - Cannot Function", "emoji": "😢", "value": 3},
     ];
 
     // Rest of your existing build method for mood selection UI
@@ -274,22 +301,24 @@ class _MoodPageState extends State<MoodPage> {
                 if (_selectedMood != null)
                   Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: ElevatedButton(
-                      onPressed: _recordMood,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: getMoodColor(_selectedMood!),
-                        minimumSize: Size(double.infinity, size.height * 0.07),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                    child: SafeArea(
+                      child: ElevatedButton(
+                        onPressed: _recordMood,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: getMoodColor(_selectedMood!),
+                          minimumSize: Size(double.infinity, size.height * 0.07),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Confirm',
-                        style: TextStyle(
-                          fontSize: 18 * fontScale,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                        child: Text(
+                          'Confirm',
+                          style: TextStyle(
+                            fontSize: 18 * fontScale,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),

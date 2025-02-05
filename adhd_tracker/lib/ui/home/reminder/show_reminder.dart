@@ -163,7 +163,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
                         decoration: reminder.isCompleted
                             ? TextDecoration.lineThrough
                             : null,
-                        color: reminder.isCompleted ? Colors.grey : Colors.black,
+                        color: reminder.isCompleted ? Colors.grey : Theme.of(context).textTheme.titleLarge?.color,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -201,18 +201,18 @@ class _ReminderListPageState extends State<ReminderListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         centerTitle: true,
         title: Text(
           'My Reminders',
           style: GoogleFonts.lato(
-            textStyle: const TextStyle(
+            textStyle: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF2D2642),
+                  color: Theme.of(context).textTheme.titleLarge?.color,
             ),
           ),
         ),

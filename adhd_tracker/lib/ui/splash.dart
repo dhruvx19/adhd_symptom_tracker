@@ -183,7 +183,7 @@ class _SplashScreenState extends State<SplashScreen>
                             child: Column(
                               children: [
                                 Text(
-                                  'ADHD_Tracker',
+                                  'ADHD Tracker',
                                   style: TextStyle(
                                     fontFamily: 'Yaro',
                                     fontSize: 44 * fontScale,

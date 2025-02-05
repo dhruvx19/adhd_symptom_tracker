@@ -122,16 +122,16 @@ class _NewGoalPageState extends State<NewGoalPage> {
     // Colors
 
     final grey = const Color(0xFFF5F5F5);
-    final darkPurple = const Color(0xFF2D2642);
+    final darkPurple = Theme.of(context).textTheme.titleLarge?.color;
 
     // Padding
     final horizontalPadding = size.width * 0.05;
     final verticalSpacing = size.height * 0.02;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
@@ -332,7 +332,7 @@ class _NewGoalPageState extends State<NewGoalPage> {
             Container(
               padding: EdgeInsets.all(padding),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
@@ -355,7 +355,7 @@ class _NewGoalPageState extends State<NewGoalPage> {
                     elevation: 0,
                   ),
                   child: Text(
-                    'Next',
+                    'Create Goal',
                     style: TextStyle(
                       fontSize: 18 * fontScale,
                       fontWeight: FontWeight.w600,

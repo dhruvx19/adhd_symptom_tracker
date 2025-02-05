@@ -5,7 +5,6 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   awesome_notifications
   file_selector_windows
-  flutter_inappwebview_windows
   flutter_secure_storage_windows
   share_plus
   url_launcher_windows

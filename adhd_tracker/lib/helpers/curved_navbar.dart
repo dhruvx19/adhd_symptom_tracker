@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ADHD_Tracker/ui/representation/mood_representation.dart';
+import 'package:ADHD_Tracker/ui/representation/mood/mood_chart.dart';
 import 'package:ADHD_Tracker/utils/color.dart';
 import 'package:provider/provider.dart';
 import 'package:ADHD_Tracker/ui/home/record/medication.dart';
@@ -29,6 +29,7 @@ class CustomCurvedNavigationBar extends StatelessWidget {
     final Size size = MediaQuery.of(context).size;
 
     return Container(
+      
       height: 80,
       child: Stack(
         alignment: Alignment.bottomCenter,

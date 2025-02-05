@@ -1,10 +1,11 @@
+import 'package:ADHD_Tracker/helpers/theme.dart';
+import 'package:ADHD_Tracker/ui/home/record/symptom.dart';
+import 'package:ADHD_Tracker/ui/representation/mood/mood_analytics.dart';
+import 'package:ADHD_Tracker/ui/settings/resources.dart';
 import 'package:flutter/material.dart';
 import 'package:ADHD_Tracker/helpers/curved_navbar.dart';
 import 'package:ADHD_Tracker/providers.dart/home_provider.dart';
-import 'package:ADHD_Tracker/ui/auth/create_profile.dart';
 import 'package:ADHD_Tracker/ui/home/goals/goals.dart';
-import 'package:ADHD_Tracker/ui/home/record/symptom.dart';
-import 'package:ADHD_Tracker/ui/home/reminder/reminder.dart';
 import 'package:ADHD_Tracker/ui/home/reminder/show_reminder.dart';
 import 'package:ADHD_Tracker/ui/settings/settings.dart';
 import 'package:ADHD_Tracker/utils/color.dart';
@@ -13,7 +14,6 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:ADHD_Tracker/providers.dart/login_provider.dart';
 import 'dart:convert';
-import 'mood.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -22,21 +22,146 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  final List<Widget> _pages = [GoalsPage(), ReminderListPage(), SettingsPage()];
+  final List<Widget> _pages = [
+    const GoalsPage(),
+    const ReminderListPage(),
+    SettingsPage()
+  ];
 
   DateTime _selectedDate = DateTime.now();
   DateTime _focusedDay = DateTime.now();
   Map<DateTime, int> _moodData = {};
   bool _isLoading = false;
+  final TextEditingController _searchController = TextEditingController();
+  List<String> _filteredPages = [];
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  List<String> _allPages = [];
+  void _createOverlay() {
+    if (_overlayEntry == null) {
+      _overlayEntry = OverlayEntry(
+        builder: (context) => Positioned(
+          width: _layerLink.leaderSize?.width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset:
+                const Offset(0, 55), // Adjust this to control dropdown position
+            child: Material(
+              color: Theme.of(context).textTheme.titleLarge?.color,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                constraints: const BoxConstraints(
+                  maxHeight: 300,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: _filteredPages.isEmpty
+                      ? _navigationOptions
+                          .expand<String>(
+                              (option) => option['pages'] as List<String>)
+                          .length
+                      : _filteredPages.length,
+                  itemBuilder: (context, index) {
+                    final pages = _filteredPages.isEmpty
+                        ? _navigationOptions
+                            .expand<String>(
+                                (option) => option['pages'] as List<String>)
+                            .toList()
+                        : _filteredPages;
+                    final page = pages[index];
+
+                    String section = '';
+                    for (var option in _navigationOptions) {
+                      if ((option['pages'] as List<String>).contains(page)) {
+                        section = option['label'] as String;
+                        break;
+                      }
+                    }
+
+                    return ListTile(
+                      textColor: Theme.of(context).textTheme.titleLarge?.color,
+                      leading: Icon(_getIconForSection(section)),
+                      title: Text(page, style: TextStyle(color:Colors.black ),),
+                      subtitle: Text(section, style: TextStyle(color:Colors.black,),),
+                      onTap: () {
+                        for (var option in _navigationOptions) {
+                          if ((option['pages'] as List<String>)
+                              .contains(page)) {
+                            _removeOverlay();
+                            _navigateToPage(context, option['route']);
+                            setState(() {
+                              _searchController.clear();
+                            });
+                            break;
+                          }
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      Overlay.of(context).insert(_overlayEntry!);
+    }
+  }
+
+
+   final List<Map<String, dynamic>> _navigationOptions = [
+    {
+      'label': 'Goals',
+      'route': const GoalsPage(),
+      'pages': ['Goals Dashboard', 'Goal Setting'],
+    },
+    {
+      'label': 'Reminder',
+      'route': const ReminderListPage(),
+      'pages': ['Reminders List', 'Set Reminder', 'Reminder History'],
+    },
+    {
+      'label': 'Profile',
+      'route': SettingsPage(),
+      'pages': ['Profile Settings', 'Account Details'],
+    },
+    {
+      'label': 'Resources',
+      'route': ResourcesPage(),
+      'pages': ['ADHD Resources', 'Articles'],
+    },
+    {
+      'label': 'Reports',
+      'route': AnalyticsPage(),
+      'pages': ['Analytics Dashboard', 'Monthly Report'],
+    },
+    {
+      'label': 'Record',
+      'route': const SymptomLogging(),
+      'pages': ['Symptom Logger', 'Daily Record'],
+    }
+  ];
+
+  void _navigateToPage(BuildContext context, Widget page) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => page));
+  }
 
   Color getMoodColor(int mood) {
     switch (mood) {
       case 1:
-        return Color(0xFF4CAF50); // Green for Mild
+        return const Color(0xFF4CAF50); // Green for Mild
       case 2:
-        return Color(0xFFFFA726); // Orange for Moderate
+        return const Color(0xFFFFA726); // Orange for Moderate
       case 3:
-        return Color(0xFFE53935); // Red for Severe
+        return const Color(0xFFE53935); // Red for Severe
       default:
         return Colors.grey;
     }
@@ -57,6 +182,18 @@ class _HomePageState extends State<HomePage> {
 
   DateTime _normalizeDate(DateTime date) {
     return DateTime(date.year, date.month, date.day);
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+// Add to dispose method
+  @override
+  void dispose() {
+    _removeOverlay();
+    super.dispose();
   }
 
   Future<void> _fetchMoods() async {
@@ -145,89 +282,16 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _initializePages();
     _fetchMoods();
     _fetchAllData();
   }
-  // Widget _buildDailySummary() {
-  //   final healthProvider = Provider.of<HealthDataProvider>(context);
-  //   final symptoms = healthProvider.symptoms;
-  //   final medications = healthProvider.medications;
-
-  //   return Container(
-  //     padding: const EdgeInsets.all(16),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         if (_moodData[_selectedDate] != null) ...[
-  //           Text(
-  //             'Mood: ${getMoodText(_moodData[_selectedDate]!)}',
-  //             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-  //           ),
-  //           SizedBox(height: 16),
-  //         ],
-
-  //         if (symptoms.isNotEmpty) ...[
-  //           Text(
-  //             'Symptoms:',
-  //             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-  //           ),
-  //           SizedBox(height: 8),
-  //           Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: symptoms.map((symptom) => Padding(
-  //               padding: const EdgeInsets.symmetric(vertical: 4),
-  //               child: Column(
-  //                 crossAxisAlignment: CrossAxisAlignment.start,
-  //                 children: [
-  //                   Text('• Time: ${symptom['timeOfDay']}'),
-  //                   Text('• Severity: ${symptom['severity']}'),
-  //                   Text('• Symptoms: ${symptom['symptoms'].join(", ")}'),
-  //                   if (symptom['notes'] != null)
-  //                     Text('• Notes: ${symptom['notes']}'),
-  //                   Divider(),
-  //                 ],
-  //               ),
-  //             )).toList(),
-  //           ),
-  //         ],
-
-  //         if (medications.isNotEmpty) ...[
-  //           SizedBox(height: 16),
-  //           Text(
-  //             'Medications:',
-  //             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-  //           ),
-  //           SizedBox(height: 8),
-  //           Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: medications.map((medication) => Padding(
-  //               padding: const EdgeInsets.symmetric(vertical: 4),
-  //               child: Column(
-  //                 crossAxisAlignment: CrossAxisAlignment.start,
-  //                 children: [
-  //                   Text('• ${medication['medicationName']} - ${medication['dosage']}'),
-  //                   Text('• Time: ${medication['timeOfTheDay']}'),
-  //                   if (medication['effects'] != null)
-  //                     Text('• Effects: ${medication['effects'].join(", ")}'),
-  //                   Divider(),
-  //                 ],
-  //               ),
-  //             )).toList(),
-  //           ),
-  //         ],
-
-  //         if (symptoms.isEmpty && medications.isEmpty && _moodData[_selectedDate] == null)
-  //           const Text(
-  //             'No Records for this date',
-  //             style: TextStyle(
-  //               fontSize: 18,
-  //               color: Colors.grey,
-  //             ),
-  //           ),
-  //       ],
-  //     ),
-  //   );
-  // }
+  void _initializePages() {
+   _allPages = _navigationOptions
+        .expand<String>((option) => (option['pages'] as List<String>? ?? []))
+        .toList();
+    _filteredPages = List.from(_allPages);
+  }
 
 // In your HomePage class, replace _buildDailySummary() with:
   Widget _buildDailySummary() {
@@ -244,195 +308,273 @@ class _HomePageState extends State<HomePage> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
-    return Scaffold(
-      bottomNavigationBar:
-          Provider.of<LoginProvider>(context, listen: false).isLoggedIn
-              ? CustomCurvedNavigationBar(
-                  items: [
-                    CurvedNavigationBarItem(
-                      iconData: Icons.home,
-                      selectedIconData: Icons.home,
+    return GestureDetector(
+      onTap: () {
+        _removeOverlay();
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        bottomNavigationBar:
+            Provider.of<LoginProvider>(context, listen: false).isLoggedIn
+                ? CustomCurvedNavigationBar(
+                    items: [
+                      CurvedNavigationBarItem(
+                        iconData: Icons.home,
+                        selectedIconData: Icons.home,
+                      ),
+                      CurvedNavigationBarItem(
+                        iconData: Icons.flag,
+                        selectedIconData: Icons.flag,
+                      ),
+                      CurvedNavigationBarItem(
+                        iconData: Icons.notifications,
+                        selectedIconData: Icons.notifications,
+                      ),
+                      CurvedNavigationBarItem(
+                        iconData: Icons.settings,
+                        selectedIconData: Icons.settings,
+                      ),
+                    ],
+                    onTap: (index) {
+                      if (index == 0) {
+                        setState(() {
+                          _currentIndex = 0;
+                        });
+                      } else {
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => _pages[index - 1]));
+                      }
+                    },
+                    selectedColor: AppTheme.upeiRed,
+                    unselectedColor: Colors.black,
+                    currentIndex: _currentIndex,
+                  )
+                : null,
+        body: SafeArea(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: isLandscape ? 8 : 20,
+                      bottom: 16 + bottomPadding,
                     ),
-                    CurvedNavigationBarItem(
-                      iconData: Icons.flag,
-                      selectedIconData: Icons.flag,
-                    ),
-                    CurvedNavigationBarItem(
-                      iconData: Icons.notifications,
-                      selectedIconData: Icons.notifications,
-                    ),
-                    CurvedNavigationBarItem(
-                      iconData: Icons.settings,
-                      selectedIconData: Icons.settings,
-                    ),
-                  ],
-                  onTap: (index) {
-                    if (index == 0) {
-                      setState(() {
-                        _currentIndex = 0;
-                      });
-                    } else {
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => _pages[index - 1]));
-                    }
-                  },
-                  selectedColor: AppTheme.upeiRed,
-                  unselectedColor: Colors.black,
-                  currentIndex: _currentIndex,
-                )
-              : null,
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: isLandscape ? 8 : 20,
-                    bottom: 16 + bottomPadding,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 40),
-                      Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: TableCalendar(
-                          locale: "en_US",
-                          headerStyle: const HeaderStyle(
-                            formatButtonVisible: false,
-                            titleCentered: true,
-                          ),
-                          firstDay: DateTime.utc(2020, 1, 1),
-                          lastDay: DateTime.utc(2030, 12, 31),
-                          focusedDay: _focusedDay,
-                          selectedDayPredicate: (day) =>
-                              isSameDay(_selectedDate, day),
-                          onDaySelected: (selectedDay, focusedDay) {
-                            setState(() {
-                              _selectedDate = selectedDay;
-                              _focusedDay = focusedDay;
-                            });
-                            final healthProvider =
-                                Provider.of<HealthDataProvider>(context,
-                                    listen: false);
-                            healthProvider.fetchSymptoms(selectedDay);
-                            healthProvider.fetchMedications(selectedDay);
-                          },
-                          onPageChanged: (focusedDay) {
-                            _focusedDay = focusedDay;
-                            _fetchMoods(); // Fetch moods when month changes
-                          },
-                          calendarBuilders: CalendarBuilders(
-                            defaultBuilder: (context, date, events) {
-                              final normalizedDate = _normalizeDate(date);
-                              final mood = _moodData[normalizedDate];
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Replace the Row widget containing the search and dropdown with this:
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration:  BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color:Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                ),
+                                child: Center(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(30),
+                                    child: Image.asset(
+                                      'assets/images/logo.png', // Make sure to add your logo image to assets
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
 
-                              if (mood != null) {
+                              // Search Bar with CompositedTransformTarget
+                              Expanded(
+                                child: CompositedTransformTarget(
+                                  link: _layerLink,
+                                  child: TextField(
+                                    style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color,),
+                                    controller: _searchController,
+                                    decoration: InputDecoration(
+                                      
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 8),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      hintText: 'Search pages...',
+                                      prefixIcon: const Icon(Icons.search),
+                                    ),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        if (value.isEmpty) {
+                                          _removeOverlay();
+                                          _filteredPages = [];
+                                        } else {
+                                          _filteredPages = _navigationOptions
+                                              .expand<String>((option) =>
+                                                  option['pages']
+                                                      as List<String>)
+                                              .where((page) => page
+                                                  .toLowerCase()
+                                                  .contains(
+                                                      value.toLowerCase()))
+                                              .toList();
+                                          _createOverlay();
+                                        }
+                                      });
+                                    },
+                                    onTap: () {
+                                      if (_searchController.text.isNotEmpty) {
+                                        _createOverlay();
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        Padding(
+                          padding: const EdgeInsets.all(10.0),
+                          child: TableCalendar(
+                            locale: "en_US",
+                            headerStyle: const HeaderStyle(
+                              formatButtonVisible: false,
+                              titleCentered: true,
+                            ),
+                            firstDay: DateTime.utc(2020, 1, 1),
+                            lastDay: DateTime.utc(2030, 12, 31),
+                            focusedDay: _focusedDay,
+                            selectedDayPredicate: (day) =>
+                                isSameDay(_selectedDate, day),
+                            onDaySelected: (selectedDay, focusedDay) {
+                              setState(() {
+                                _selectedDate = selectedDay;
+                                _focusedDay = focusedDay;
+                              });
+                              final healthProvider =
+                                  Provider.of<HealthDataProvider>(context,
+                                      listen: false);
+                              healthProvider.fetchSymptoms(selectedDay);
+                              healthProvider.fetchMedications(selectedDay);
+                            },
+                            onPageChanged: (focusedDay) {
+                              _focusedDay = focusedDay;
+                              _fetchMoods(); // Fetch moods when month changes
+                            },
+                            calendarBuilders: CalendarBuilders(
+                              defaultBuilder: (context, date, events) {
+                                final normalizedDate = _normalizeDate(date);
+                                final mood = _moodData[normalizedDate];
+
+                                if (mood != null) {
+                                  return Container(
+                                    margin: const EdgeInsets.all(4.0),
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: getMoodColor(mood),
+                                    ),
+                                    child: Text(
+                                      '${date.day}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return null;
+                              },
+                              selectedBuilder: (context, date, events) {
+                                final normalizedDate = _normalizeDate(date);
+                                final mood = _moodData[normalizedDate];
+
                                 return Container(
                                   margin: const EdgeInsets.all(4.0),
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: getMoodColor(mood),
+                                    color: mood != null
+                                        ? getMoodColor(mood)
+                                        : const Color(0xFF8D5BFF),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
                                   ),
                                   child: Text(
                                     '${date.day}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 );
-                              }
-                              return null;
-                            },
-                            selectedBuilder: (context, date, events) {
-                              final normalizedDate = _normalizeDate(date);
-                              final mood = _moodData[normalizedDate];
+                              },
+                              todayBuilder: (context, date, events) {
+                                final normalizedDate = _normalizeDate(date);
+                                final mood = _moodData[normalizedDate];
 
-                              return Container(
-                                margin: const EdgeInsets.all(4.0),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: mood != null
-                                      ? getMoodColor(mood)
-                                      : Color(0xFF8D5BFF),
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Text(
-                                  '${date.day}',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              );
-                            },
-                            todayBuilder: (context, date, events) {
-                              final normalizedDate = _normalizeDate(date);
-                              final mood = _moodData[normalizedDate];
-
-                              return Container(
-                                margin: const EdgeInsets.all(4.0),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: mood != null
-                                      ? getMoodColor(mood)
-                                      : Colors.transparent,
-                                  border: Border.all(
-                                    color: Color(0xFF8D5BFF),
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Text(
-                                  '${date.day}',
-                                  style: TextStyle(
+                                return Container(
+                                  margin: const EdgeInsets.all(4.0),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
                                     color: mood != null
-                                        ? Colors.white
-                                        : Color(0xFF8D5BFF),
-                                    fontWeight: FontWeight.bold,
+                                        ? getMoodColor(mood)
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      color: const Color(0xFF8D5BFF),
+                                      width: 2,
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
+                                  child: Text(
+                                    '${date.day}',
+                                    style: TextStyle(
+                                      color: mood != null
+                                          ? Colors.white
+                                          : const Color(0xFF8D5BFF),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            daysOfWeekHeight: isSmallScreen ? 16 : 20,
+                            rowHeight: isSmallScreen ? 42 : 52,
                           ),
-                          daysOfWeekHeight: isSmallScreen ? 16 : 20,
-                          rowHeight: isSmallScreen ? 42 : 52,
                         ),
-                      ),
-                      SizedBox(height: isSmallScreen ? 20 : 40),
-                      _buildDailySummary(),
-                      SizedBox(height: 80 + bottomPadding),
+                        SizedBox(height: isSmallScreen ? 20 : 40),
+                        _buildDailySummary(),
+                        SizedBox(height: 80 + bottomPadding),
 
-                      SizedBox(height: isSmallScreen ? 16 : 24),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        alignment: Alignment.center,
-                        child: _moodData[_selectedDate] == null
-                            ? const Text(
-                                '',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey,
+                        SizedBox(height: isSmallScreen ? 16 : 24),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          alignment: Alignment.center,
+                          child: _moodData[_selectedDate] == null
+                              ? const Text(
+                                  '',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.grey,
+                                  ),
+                                )
+                              : Text(
+                                  'Mood: ${getMoodText(_moodData[_selectedDate]!)}',
+                                  style: const TextStyle(fontSize: 18),
                                 ),
-                              )
-                            : Text(
-                                'Mood: ${_moodData[_selectedDate] == 0 ? "Mild" : _moodData[_selectedDate] == 1 ? "Moderate" : "Severe"}',
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                      ),
-                      // Add extra padding at bottom to prevent content from being hidden behind navbar
-                      SizedBox(height: 80 + bottomPadding),
-                    ],
+                        ),
+                        // Add extra padding at bottom to prevent content from being hidden behind navbar
+                        SizedBox(height: 80 + bottomPadding),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -486,6 +628,7 @@ class _DayRecordTileState extends State<DayRecordTile> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Consumer<HealthDataProvider>(
       builder: (context, healthProvider, child) {
         final symptoms = healthProvider.symptoms;
@@ -504,8 +647,8 @@ class _DayRecordTileState extends State<DayRecordTile> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: Text(
-                  'Your Day Record',
+                title: const Text(
+                  'Record',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -515,7 +658,8 @@ class _DayRecordTileState extends State<DayRecordTile> {
                   '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year}',
                 ),
                 trailing: IconButton(
-                  icon: Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
+                  icon:
+                      Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
                   onPressed: () {
                     setState(() {
                       isExpanded = !isExpanded;
@@ -527,8 +671,10 @@ class _DayRecordTileState extends State<DayRecordTile> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.only(
+                   color: themeProvider.isDarkMode 
+          ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+          : Colors.white,
+                    borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(4),
                       bottomRight: Radius.circular(4),
                     ),
@@ -538,7 +684,7 @@ class _DayRecordTileState extends State<DayRecordTile> {
                     children: [
                       // Mood Section
                       if (mood != null) ...[
-                        Text(
+                        const Text(
                           'Mood',
                           style: TextStyle(
                             fontSize: 16,
@@ -549,12 +695,12 @@ class _DayRecordTileState extends State<DayRecordTile> {
                           padding: const EdgeInsets.all(8.0),
                           child: Text(getMoodText(mood)),
                         ),
-                        Divider(),
+                        const Divider(),
                       ],
 
                       // Symptoms Section
                       if (symptoms.isNotEmpty) ...[
-                        Text(
+                        const Text(
                           'Symptoms',
                           style: TextStyle(
                             fontSize: 16,
@@ -563,12 +709,15 @@ class _DayRecordTileState extends State<DayRecordTile> {
                         ),
                         ListView.builder(
                           shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
+                          physics: const NeverScrollableScrollPhysics(),
                           itemCount: symptoms.length,
                           itemBuilder: (context, index) {
                             final symptom = symptoms[index];
                             return Card(
-                              margin: EdgeInsets.symmetric(vertical: 4),
+                              color: themeProvider.isDarkMode 
+          ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+          : Colors.white,
+                              margin: const EdgeInsets.symmetric(vertical: 4),
                               child: Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Column(
@@ -576,11 +725,15 @@ class _DayRecordTileState extends State<DayRecordTile> {
                                   children: [
                                     Text(
                                       'Time: ${symptom['timeOfDay'] ?? 'Not specified'}',
-                                      style: TextStyle(fontWeight: FontWeight.w500),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500),
                                     ),
-                                    Text('Severity: ${symptom['severity'] ?? 'Not specified'}'),
-                                    Text('Symptoms: ${getSymptomsList(symptom['symptoms'])}'),
-                                    if (symptom['notes'] != null && symptom['notes'].toString().isNotEmpty)
+                                    Text(
+                                        'Severity: ${symptom['severity'] ?? 'Not specified'}'),
+                                    Text(
+                                        'Symptoms: ${getSymptomsList(symptom['symptoms'])}'),
+                                    if (symptom['notes'] != null &&
+                                        symptom['notes'].toString().isNotEmpty)
                                       Text('Notes: ${symptom['notes']}'),
                                   ],
                                 ),
@@ -588,12 +741,12 @@ class _DayRecordTileState extends State<DayRecordTile> {
                             );
                           },
                         ),
-                        Divider(),
+                        const Divider(),
                       ],
 
                       // Medications Section
                       if (medications.isNotEmpty) ...[
-                        Text(
+                        const Text(
                           'Medications',
                           style: TextStyle(
                             fontSize: 16,
@@ -602,12 +755,15 @@ class _DayRecordTileState extends State<DayRecordTile> {
                         ),
                         ListView.builder(
                           shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
+                          physics: const NeverScrollableScrollPhysics(),
                           itemCount: medications.length,
                           itemBuilder: (context, index) {
                             final medication = medications[index];
                             return Card(
-                              margin: EdgeInsets.symmetric(vertical: 4),
+                              color: themeProvider.isDarkMode 
+          ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+          : Colors.white,
+                              margin: const EdgeInsets.symmetric(vertical: 4),
                               child: Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Column(
@@ -615,10 +771,13 @@ class _DayRecordTileState extends State<DayRecordTile> {
                                   children: [
                                     Text(
                                       '${medication['medicationName'] ?? 'Unknown'} - ${medication['dosage'] ?? 'Not specified'}',
-                                      style: TextStyle(fontWeight: FontWeight.w500),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500),
                                     ),
-                                    Text('Time: ${medication['timeOfTheDay'] ?? 'Not specified'}'),
-                                    Text('Effects: ${getEffectsList(medication['effects'])}'),
+                                    Text(
+                                        'Time: ${medication['timeOfTheDay'] ?? 'Not specified'}'),
+                                    Text(
+                                        'Effects: ${getEffectsList(medication['effects'])}'),
                                   ],
                                 ),
                               ),
@@ -627,15 +786,16 @@ class _DayRecordTileState extends State<DayRecordTile> {
                         ),
                       ],
 
-                      if (mood == null && symptoms.isEmpty && medications.isEmpty)
-                        Center(
+                      if (mood == null &&
+                          symptoms.isEmpty &&
+                          medications.isEmpty)
+                        const Center(
                           child: Padding(
-                            padding: const EdgeInsets.all(16.0),
+                            padding: EdgeInsets.all(16.0),
                             child: Column(
                               children: [
-                                Icon(Icons.note_alt_outlined, 
-                                     size: 48, 
-                                     color: Colors.grey),
+                                Icon(Icons.note_alt_outlined,
+                                    size: 48, color: Colors.grey),
                                 SizedBox(height: 8),
                                 Text(
                                   'No records for this date',
@@ -656,5 +816,20 @@ class _DayRecordTileState extends State<DayRecordTile> {
         );
       },
     );
+  }
+}
+
+IconData _getIconForSection(String section) {
+  switch (section) {
+    case 'Home':
+      return Icons.home;
+    case 'Goals':
+      return Icons.flag;
+    case 'Reminders':
+      return Icons.notifications;
+    case 'Settings':
+      return Icons.settings;
+    default:
+      return Icons.navigate_next;
   }
 }

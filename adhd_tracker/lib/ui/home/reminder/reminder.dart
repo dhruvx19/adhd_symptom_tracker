@@ -16,7 +16,7 @@ class ReminderPage extends StatefulWidget {
 }
 
 class _ReminderPageState extends State<ReminderPage> {
-final List<String> _soundOptions = NotificationService.soundMap.keys.toList();
+  final List<String> _soundOptions = NotificationService.soundMap.keys.toList();
   final List<String> _frequencyOptions = [
     'Once',
     'Twice',
@@ -30,9 +30,8 @@ final List<String> _soundOptions = NotificationService.soundMap.keys.toList();
   String? _selectedFrequency;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _notesController = TextEditingController();
-   final TextEditingController _titleController = TextEditingController();
-    Timer? _debounce;
-
+  final TextEditingController _titleController = TextEditingController();
+  Timer? _debounce;
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime today = DateTime.now();
@@ -62,8 +61,11 @@ final List<String> _soundOptions = NotificationService.soundMap.keys.toList();
     super.dispose();
   }
 
-void _saveReminder() async {
-    if (_startDate == null || _selectedFrequency == null || _selectedTime == null || _titleController.text.isEmpty) {
+  void _saveReminder() async {
+    if (_startDate == null ||
+        _selectedFrequency == null ||
+        _selectedTime == null ||
+        _titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all required fields')),
       );
@@ -94,8 +96,12 @@ void _saveReminder() async {
       Navigator.pop(context);
     }
   }
+
   void _saveToList() async {
-    if (_startDate == null || _selectedFrequency == null || _selectedTime == null || _titleController.text.isEmpty) {
+    if (_startDate == null ||
+        _selectedFrequency == null ||
+        _selectedTime == null ||
+        _titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all required fields')),
       );
@@ -114,7 +120,6 @@ void _saveReminder() async {
     await DatabaseHelper.instance.insertReminder(reminder);
     Navigator.pop(context);
   }
-
 
   Future<void> _selectTime(BuildContext context) async {
     final TimeOfDay? pickedTime = await showTimePicker(
@@ -137,18 +142,18 @@ void _saveReminder() async {
     final isSmallScreen = size.height < 600;
 
     // Colors
-   
+
     final grey = const Color(0xFFF5F5F5);
-    final darkPurple = const Color(0xFF2D2642);
+    final darkPurple = Theme.of(context).textTheme.titleLarge?.color;
 
     // Padding
     final horizontalPadding = size.width * 0.05; // 5% of screen width
     final verticalSpacing = size.height * 0.02; // 2% of screen height
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
@@ -160,7 +165,7 @@ void _saveReminder() async {
             textStyle: TextStyle(
               fontSize: 20 * fontScale,
               fontWeight: FontWeight.bold,
-              color: darkPurple,
+              color: Theme.of(context).textTheme.titleLarge?.color,
               letterSpacing: -0.5,
             ),
           ),
@@ -181,6 +186,7 @@ void _saveReminder() async {
                   children: [
                     SizedBox(height: verticalSpacing),
                     TextField(
+                      style: TextStyle(color: Colors.grey[600]),
                       controller: _titleController,
                       decoration: InputDecoration(
                         hintText: 'Title',
@@ -195,6 +201,7 @@ void _saveReminder() async {
                     ),
                     SizedBox(height: verticalSpacing * 2),
                     TextField(
+                      style: TextStyle(color: Colors.grey[600]),
                       controller: _notesController,
                       maxLines: isSmallScreen ? 3 : 5,
                       decoration: InputDecoration(
@@ -215,7 +222,7 @@ void _saveReminder() async {
                         textStyle: TextStyle(
                           fontSize: 16 * fontScale,
                           fontWeight: FontWeight.bold,
-                          color: darkPurple,
+                          color: Theme.of(context).textTheme.titleLarge?.color,
                         ),
                       ),
                     ),
@@ -256,12 +263,17 @@ void _saveReminder() async {
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      hint: Text('Select frequency'),
+                      hint: Text(
+                        'Select frequency',
+                        style: TextStyle(
+                            color:
+                               Colors.grey[600]),
+                      ),
                       value: _selectedFrequency,
                       items: _frequencyOptions.map((freq) {
                         return DropdownMenuItem(
                           value: freq,
-                          child: Text(freq),
+                          child: Text(freq, style: TextStyle(color: Colors.grey[600],),),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -291,12 +303,17 @@ void _saveReminder() async {
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      hint: Text('Select Sound'),
+                      hint: Text(
+                        'Select Sound',
+                        style: TextStyle(
+                            color:
+                                Colors.grey[600]),
+                      ),
                       value: _selectedSound,
                       items: _soundOptions.map((sound) {
                         return DropdownMenuItem(
                           value: sound,
-                          child: Text(sound),
+                          child: Text(sound, style: TextStyle(color: Colors.grey[600]),),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -316,7 +333,7 @@ void _saveReminder() async {
                 vertical: verticalSpacing,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),

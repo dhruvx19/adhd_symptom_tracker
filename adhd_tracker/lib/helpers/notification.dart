@@ -52,10 +52,10 @@ class NotificationService {
         largeIcon: 'resource://drawable/notification_icon',
       ),
       schedule: NotificationCalendar(
-        hour: 17, // 12 PM
-        minute: 42,
+        hour: 19,
+        minute: 00,
         second: 0,
-        repeats: true, // Repeat daily
+        repeats: true, 
       ),
     );
   }
@@ -165,9 +165,9 @@ class NotificationService {
       return true;
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('You cannot create a notification for a past time. Please select a future time and try again.'),
-          duration: const Duration(seconds: 4),
+          duration: Duration(seconds: 4),
         ),
       );
       return false;

@@ -7,8 +7,6 @@ import 'package:provider/provider.dart';
 import '../../utils/color.dart';
 import '../../utils/constants.dart';
 
-
-
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({Key? key}) : super(key: key);
 
@@ -33,7 +31,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _handleSendOtp(BuildContext context, ForgotPasswordProvider provider) async {
-    // Hide keyboard when OTP sending is initiated
     FocusScope.of(context).unfocus();
 
     final success = await provider.sendPasswordResetOtp(emailController.text.trim());
@@ -49,7 +46,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _handleVerifyOtp(BuildContext context, ForgotPasswordProvider provider) async {
-    // Hide keyboard when OTP verification is initiated
     FocusScope.of(context).unfocus();
 
     final success = await provider.verifyPasswordResetOtp(
@@ -68,13 +64,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _handleResetPassword(BuildContext context, ForgotPasswordProvider provider) async {
-    // Hide keyboard when password reset is initiated
     FocusScope.of(context).unfocus();
 
     final success = await provider.resetPassword(newPasswordController.text);
 
     if (success) {
-      // Navigate back to login or show success dialog
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -111,11 +105,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         body: Consumer<ForgotPasswordProvider>(
           builder: (context, provider, child) {
-            return GestureDetector(
-              onTap: () => FocusScope.of(context).unfocus(),
-              child: Stack(
-                children: [
-                  SingleChildScrollView(
+            return Stack(
+              children: [
+                GestureDetector(
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,7 +128,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                         const SizedBox(height: 32),
                         
-                        // Email TextField (always visible)
                         Text('Email',
                             style: GoogleFonts.lato(
                               textStyle: TextStyle(
@@ -157,7 +150,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ),
 
-                        // OTP TextField (appears after OTP is sent)
                         if (provider.isOtpSent) ...[
                           const SizedBox(height: 16),
                           Text('OTP',
@@ -188,7 +180,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ],
 
-                        // New Password TextField (appears after OTP verification)
                         if (provider.isOtpVerified) ...[
                           const SizedBox(height: 16),
                           Text('New Password',
@@ -237,15 +228,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   context,
                                   listen: false);
 
-                              // Determine which action to take based on current state
                               if (!provider.isOtpSent) {
-                                // Send OTP
                                 _handleSendOtp(context, provider);
                               } else if (provider.isOtpSent && !provider.isOtpVerified) {
-                                // Verify OTP
                                 _handleVerifyOtp(context, provider);
                               } else if (provider.isOtpVerified) {
-                                // Reset Password
                                 _handleResetPassword(context, provider);
                               }
                             },
@@ -269,21 +256,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ],
                     ),
                   ),
-                  // Loading indicator
-                  if (provider.isLoading)
-                    Positioned.fill(
-                      child: Container(
-                        color: Colors.black.withOpacity(0.3),
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(AppTheme.upeiRed),
-                          ),
-                        ),
-                      ),
+                ),
+                // Updated loading indicator
+                if (provider.isLoading)
+                  Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.upeiRed),
                     ),
-                ],
-              ),
+                  ),
+              ],
             );
           },
         ),

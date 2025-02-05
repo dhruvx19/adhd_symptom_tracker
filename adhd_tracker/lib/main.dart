@@ -1,6 +1,4 @@
 import 'dart:io';
-
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:ADHD_Tracker/helpers/notification.dart';
 import 'package:ADHD_Tracker/helpers/theme.dart';
@@ -17,15 +15,10 @@ import 'package:ADHD_Tracker/ui/splash.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-final InAppLocalhostServer localhostServer = InAppLocalhostServer();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.initializeNotifications();
-  if (Platform.isAndroid) {
-    await AndroidInAppWebViewController.setWebContentsDebuggingEnabled(true);
-  }
 
-  await localhostServer.start();
   runApp(
     MultiProvider(
       providers: [
@@ -57,7 +50,10 @@ class MyApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          theme: ThemeData.light(),
+          theme: ThemeData.light().copyWith(
+            scaffoldBackgroundColor:
+                Colors.white, // Explicitly set white for light mode
+          ),
           darkTheme: ThemeData.dark(),
           themeMode:
               themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import 'package:ADHD_Tracker/utils/color.dart';
 
 class ChangePasswordPage extends StatefulWidget {
@@ -25,7 +24,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: Theme.of(context).colorScheme.error,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -55,9 +54,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password changed successfully'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Password changed successfully'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
         Navigator.pop(context);
@@ -99,13 +98,64 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     return null;
   }
 
+  InputDecoration _getInputDecoration({
+    required String labelText,
+    required bool obscureText,
+    required VoidCallback onToggleVisibility,
+    String? helperText,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      helperText: helperText,
+      helperMaxLines: 2,
+      helperStyle: TextStyle(
+        color: Theme.of(context).textTheme.bodySmall?.color,
+      ),
+      border: OutlineInputBorder(
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.outline,
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+      labelStyle: TextStyle(
+        color: Theme.of(context).textTheme.bodyLarge?.color,
+      ),
+      suffixIcon: IconButton(
+        icon: Icon(
+          obscureText ? Icons.visibility_off : Icons.visibility,
+          color: Theme.of(context).iconTheme.color?.withOpacity(0.7),
+        ),
+        onPressed: onToggleVisibility,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text('Change Password'),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        title: Text(
+          'Change Password',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.titleLarge?.color,
+          ),
+        ),
+        iconTheme: IconThemeData(
+          color: Theme.of(context).iconTheme.color,
+        ),
       ),
       body: SafeArea(
         child: LayoutBuilder(
@@ -127,13 +177,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                           TextFormField(
                             controller: _oldPasswordController,
                             obscureText: _obscureOldPassword,
-                            decoration: InputDecoration(
+                            decoration: _getInputDecoration(
                               labelText: 'Current Password',
-                              border: const OutlineInputBorder(),
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscureOldPassword ? Icons.visibility_off : Icons.visibility),
-                                onPressed: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
-                              ),
+                              obscureText: _obscureOldPassword,
+                              onToggleVisibility: () => setState(() => _obscureOldPassword = !_obscureOldPassword),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
@@ -141,20 +188,19 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                               }
                               return null;
                             },
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                            ),
                           ),
                           const SizedBox(height: 24),
                           TextFormField(
                             controller: _newPasswordController,
                             obscureText: _obscureNewPassword,
-                            decoration: InputDecoration(
+                            decoration: _getInputDecoration(
                               labelText: 'New Password',
-                              border: const OutlineInputBorder(),
+                              obscureText: _obscureNewPassword,
+                              onToggleVisibility: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
                               helperText: 'Password must contain at least 8 characters, including uppercase, lowercase, and numbers',
-                              helperMaxLines: 2,
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscureNewPassword ? Icons.visibility_off : Icons.visibility),
-                                onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
-                              ),
                             ),
                             validator: (value) {
                               if (value == _oldPasswordController.text) {
@@ -162,18 +208,18 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                               }
                               return _getPasswordValidationMessage(value);
                             },
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                            ),
                           ),
                           const SizedBox(height: 24),
                           TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: _obscureConfirmPassword,
-                            decoration: InputDecoration(
+                            decoration: _getInputDecoration(
                               labelText: 'Confirm New Password',
-                              border: const OutlineInputBorder(),
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
-                                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                              ),
+                              obscureText: _obscureConfirmPassword,
+                              onToggleVisibility: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
@@ -184,31 +230,42 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                               }
                               return null;
                             },
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                            ),
                           ),
                           const SizedBox(height: 32),
                           const Spacer(),
                           ElevatedButton(
                             onPressed: _isLoading ? null : _changePassword,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.upeiRed,
+                              backgroundColor: isDarkMode 
+                                  ? AppTheme.upeiRed.withOpacity(0.8)
+                                  : AppTheme.upeiRed,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
+                              elevation: isDarkMode ? 0 : 1,
                             ),
                             child: _isLoading
                                 ? const SizedBox(
                                     height: 20,
                                     width: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                       Colors.white,
+                                      ),
+                                    ),
                                   )
                                 : const Text(
                                     'Change Password',
                                     style: TextStyle(
-                              fontSize: 18 ,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
                                   ),
                           ),
                         ],

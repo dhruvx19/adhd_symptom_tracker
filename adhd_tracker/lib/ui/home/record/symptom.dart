@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ADHD_Tracker/providers.dart/symptom_provider.dart';
 import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:ADHD_Tracker/ui/home/record/medication.dart';
 
@@ -19,9 +20,10 @@ class _SymptomLoggingState extends State<SymptomLogging> {
   String? selectedFrequency;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _notesController = TextEditingController();
+  late TextEditingController dateController;
   Timer? _debounce;
   Future<void>? _loadingFuture;
-  
+
   final _frequencyOptions = [
     'Morning',
     'Mid Day',
@@ -36,16 +38,44 @@ class _SymptomLoggingState extends State<SymptomLogging> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScrollStopped);
+    dateController = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+
+    // Initialize the provider with the current date
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final symptomProvider = Provider.of<SymptomProvider>(context, listen: false);
+      final provider = Provider.of<SymptomProvider>(context, listen: false);
+      provider.updateDate(dateController.text);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final symptomProvider =
+          Provider.of<SymptomProvider>(context, listen: false);
+
       if (!symptomProvider.isInitialized) {
         symptomProvider.fetchSymptoms();
       }
     });
   }
 
+  Future<void> _selectDate(
+      BuildContext context, SymptomProvider provider) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2026),
+    );
+    if (picked != null) {
+      final formattedDate = DateFormat('yyyy-MM-dd').format(picked);
+      setState(() {
+        dateController.text = formattedDate;
+      });
+      provider.updateDate(formattedDate);
+    }
+  }
+
   Future<void> _initializeData() async {
-    final symptomProvider = Provider.of<SymptomProvider>(context, listen: false);
+    final symptomProvider =
+        Provider.of<SymptomProvider>(context, listen: false);
     await symptomProvider.fetchSymptoms();
   }
 
@@ -73,7 +103,8 @@ class _SymptomLoggingState extends State<SymptomLogging> {
   }
 
   Future<void> _handleSubmit() async {
-    final symptomProvider = Provider.of<SymptomProvider>(context, listen: false);
+    final symptomProvider =
+        Provider.of<SymptomProvider>(context, listen: false);
     final selectedSymptoms = symptomProvider.symptomSelection.entries
         .where((entry) => entry.value)
         .map((entry) => entry.key)
@@ -99,7 +130,9 @@ class _SymptomLoggingState extends State<SymptomLogging> {
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(symptomProvider.error ?? 'Failed to submit symptoms')),
+        SnackBar(
+            content:
+                Text(symptomProvider.error ?? 'Failed to submit symptoms')),
       );
     }
   }
@@ -111,9 +144,8 @@ class _SymptomLoggingState extends State<SymptomLogging> {
     final padding = size.width * 0.04;
     final isSmallScreen = size.height < 600;
 
-    
     final grey = const Color(0xFFF5F5F5);
-    final darkPurple = const Color(0xFF2D2642);
+    final darkPurple = Theme.of(context).textTheme.titleLarge?.color;
 
     Widget _buildTitle(String title) {
       return Text(
@@ -130,9 +162,9 @@ class _SymptomLoggingState extends State<SymptomLogging> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
@@ -180,11 +212,14 @@ class _SymptomLoggingState extends State<SymptomLogging> {
                             _buildTitle('Symptoms'),
                             SizedBox(height: padding / 2),
                             Column(
-                              children: symptomProvider.symptomSelection.keys.map((symptom) {
+                              children: symptomProvider.symptomSelection.keys
+                                  .map((symptom) {
                                 return Container(
-                                  margin: EdgeInsets.symmetric(vertical: padding / 4),
+                                  margin: EdgeInsets.symmetric(
+                                      vertical: padding / 4),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Expanded(
                                         child: Text(
@@ -192,7 +227,10 @@ class _SymptomLoggingState extends State<SymptomLogging> {
                                           style: GoogleFonts.lato(
                                             textStyle: TextStyle(
                                               fontSize: 14 * fontScale,
-                                              color: Colors.black,
+                                              color: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color,
                                             ),
                                           ),
                                         ),
@@ -200,9 +238,11 @@ class _SymptomLoggingState extends State<SymptomLogging> {
                                       Transform.scale(
                                         scale: fontScale,
                                         child: Checkbox(
-                                          value: symptomProvider.symptomSelection[symptom],
+                                          value: symptomProvider
+                                              .symptomSelection[symptom],
                                           onChanged: (bool? value) {
-                                            symptomProvider.updateSymptomSelection(
+                                            symptomProvider
+                                                .updateSymptomSelection(
                                               symptom,
                                               value ?? false,
                                             );
@@ -224,33 +264,39 @@ class _SymptomLoggingState extends State<SymptomLogging> {
                                 children: [
                                   _FrequencyButton(
                                     label: 'Not at all',
-                                    isSelected: selectedFrequency == 'Not at all',
-                                    onPressed: () =>
-                                        setState(() => selectedFrequency = 'Not at all'),
+                                    isSelected:
+                                        selectedFrequency == 'Not at all',
+                                    onPressed: () => setState(
+                                        () => selectedFrequency = 'Not at all'),
                                   ),
                                   SizedBox(width: padding / 2),
                                   _FrequencyButton(
                                     label: 'Mild',
                                     isSelected: selectedFrequency == 'Mild',
-                                    onPressed: () =>
-                                        setState(() => selectedFrequency = 'Mild'),
+                                    onPressed: () => setState(
+                                        () => selectedFrequency = 'Mild'),
                                   ),
                                   SizedBox(width: padding / 2),
                                   _FrequencyButton(
                                     label: 'Moderate',
                                     isSelected: selectedFrequency == 'Moderate',
-                                    onPressed: () =>
-                                        setState(() => selectedFrequency = 'Moderate'),
+                                    onPressed: () => setState(
+                                        () => selectedFrequency = 'Moderate'),
                                   ),
                                   SizedBox(width: padding / 2),
                                   _FrequencyButton(
                                     label: 'Severe',
                                     isSelected: selectedFrequency == 'Severe',
-                                    onPressed: () =>
-                                        setState(() => selectedFrequency = 'Severe'),
+                                    onPressed: () => setState(
+                                        () => selectedFrequency = 'Severe'),
                                   ),
                                 ],
                               ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildDateField(
+                              context: context,
+                              provider: symptomProvider,
                             ),
                             SizedBox(height: padding * 1.5),
                             _buildTitle('Time of day'),
@@ -265,7 +311,8 @@ class _SymptomLoggingState extends State<SymptomLogging> {
                                   return GestureDetector(
                                     onTap: () => _selectFrequency(index),
                                     child: Container(
-                                      margin: EdgeInsets.symmetric(vertical: padding / 2),
+                                      margin: EdgeInsets.symmetric(
+                                          vertical: padding / 2),
                                       padding: EdgeInsets.symmetric(
                                         horizontal: padding,
                                         vertical: isSmallScreen ? 8 : 12,
@@ -276,7 +323,8 @@ class _SymptomLoggingState extends State<SymptomLogging> {
                                             : Colors.white,
                                         borderRadius: BorderRadius.circular(25),
                                         border: _selectedFrequencyIndex == index
-                                            ? Border.all(color: grey, width: 1.5)
+                                            ? Border.all(
+                                                color: grey, width: 1.5)
                                             : null,
                                       ),
                                       child: Text(
@@ -297,6 +345,7 @@ class _SymptomLoggingState extends State<SymptomLogging> {
                             _buildTitle('Notes'),
                             SizedBox(height: padding),
                             TextField(
+                              style: const TextStyle(color: Colors.black),
                               controller: _notesController,
                               maxLines: isSmallScreen ? 3 : 5,
                               decoration: InputDecoration(
@@ -317,7 +366,7 @@ class _SymptomLoggingState extends State<SymptomLogging> {
                     Container(
                       padding: EdgeInsets.all(padding),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.05),
@@ -331,7 +380,8 @@ class _SymptomLoggingState extends State<SymptomLogging> {
                           onPressed: _handleSubmit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.upeiRed,
-                            minimumSize: Size(double.infinity, size.height * 0.07),
+                            minimumSize:
+                                Size(double.infinity, size.height * 0.07),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -355,6 +405,40 @@ class _SymptomLoggingState extends State<SymptomLogging> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildDateField({
+    required BuildContext context,
+    required SymptomProvider provider,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Date',
+          style: GoogleFonts.lato(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          style: TextStyle(color: Colors.black),
+          controller: dateController,
+          readOnly: true,
+          onTap: () => _selectDate(context, provider),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.calendar_today),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            filled: true,
+            fillColor: Colors.grey[100],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -67,13 +67,13 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final fontScale = size.width / 375.0;
-    final darkPurple = const Color(0xFF2D2642);
+    final darkPurple = Theme.of(context).textTheme.bodyLarge?.color;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor:Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
@@ -195,11 +195,12 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
           style: GoogleFonts.lato(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
         const SizedBox(height: 8),
         TextField(
+          style: TextStyle(color: Colors.black),
           controller: controller,
           onChanged: onChanged,
           decoration: InputDecoration(
@@ -227,11 +228,12 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
           style: GoogleFonts.lato(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
         const SizedBox(height: 8),
         TextField(
+          style: TextStyle(color: Colors.black),
           controller: dateController,
           readOnly: true,
           onTap: () => _selectDate(context, provider),

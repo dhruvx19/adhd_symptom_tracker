@@ -166,15 +166,15 @@ class _GoalsPageState extends State<GoalsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         centerTitle: true,
         title: Text(
           'My Goals',
           style: GoogleFonts.lato(
-            textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2D2642)),
+            textStyle:  TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.titleLarge?.color,),
           ),
         ),
       ),
@@ -202,6 +202,7 @@ class _GoalsPageState extends State<GoalsPage> {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SafeArea(
+          
           child: ElevatedButton(
             onPressed: () async {
               await Navigator.push(context, MaterialPageRoute(builder: (context) => const NewGoalPage()));

@@ -1,5 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'dart:io';
+
+class ResourceModel {
+  final String title;
+  final String imageUrl;
+  final String url;
+  final String? author;
+
+  ResourceModel({
+    required this.title,
+    required this.imageUrl,
+    required this.url,
+    this.author,
+  });
+
+  factory ResourceModel.fromMap(Map<String, dynamic> map) {
+    return ResourceModel(
+      title: map['title'] ?? '',
+      imageUrl: map['imageUrl'] ?? '',
+      url: map['url'] ?? '',
+      author: map['author'],
+    );
+  }
+}
 
 class ResourcesPage extends StatefulWidget {
   const ResourcesPage({Key? key}) : super(key: key);
@@ -27,12 +51,7 @@ class _ResourcesPageState extends State<ResourcesPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Resources'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
-          ),
-        ],
+
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -118,38 +137,59 @@ class FeaturedResourcesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resources = [
-      {
-        'title': 'Understanding ADHD',
-        'author': 'CDC',
-        'url': 'https://www.cdc.gov/ncbddd/adhd/facts.html'
-      },
-      {
-        'title': 'ADHD in Women and Girls',
-        'author': 'CHADD',
-        'url': 'https://chadd.org/for-adults/women-and-girls/'
-      },
-      {
-        'title': 'Managing Adult ADHD',
-        'author': 'National Institute of Mental Health',
-        'url':
-            'https://www.nimh.nih.gov/health/publications/attention-deficit-hyperactivity-disorder-in-adults'
-      },
-      {
-        'title': 'ADHD Treatment Guidelines',
-        'author': 'American Academy of Pediatrics',
-        'url': 'https://www.aap.org/adhd'
-      },
-      {
-        'title': 'ADHD and Executive Function',
-        'author': 'ADDitude Magazine',
-        'url': 'https://www.additudemag.com/category/adhd-add/adhd-essentials/'
-      },
+      ResourceModel(
+        title: 'Understanding ADHD',
+        author: 'Psychiatry',
+        url: 'https://www.psychiatry.org/patients-families/adhd/what-is-adhd#:~:text=Attention%2Ddeficit%2Fhyperactivity%20disorder%20(ADHD)%20is%20one%20of,in%20the%20moment%20without%20thought).',
+        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
+      ),
+      ResourceModel(
+        title: 'ADHD in Women and Girls',
+        author: 'CHADD',
+        url: 'https://chadd.org/for-adults/women-and-girls/',
+        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
+      ),
+      ResourceModel(
+        title: 'Managing Adult ADHD',
+        author: 'HelpGuide.org',
+        url: 'https://www.helpguide.org/mental-health/adhd/managing-adult-adhd',
+        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
+      ),
+      ResourceModel(
+        title: 'ADHD Treatment Guidelines',
+        author: 'American Academy of Pediatrics',
+        url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC10764666/',
+        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
+      ),
+      ResourceModel(
+        title: 'Overlooked signs of ADHD',
+        author: 'ADDitude',
+        url: 'https://www.additudemag.com/adhd-inattentive-type-5-signs/',
+        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
+      ),
+      ResourceModel(
+        title: 'ADHD Treatment Guidelines',
+        author: 'Medical News Today',
+        url: 'https://www.medicalnewstoday.com/articles/adhd-linked-to-astonishing-reduction-in-life-expectancy',
+        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
+      ),
+      ResourceModel(
+        title: 'ADHD and Executive Function',
+        author: 'ADDitude Magazine',
+        url: 'https://www.additudemag.com/category/adhd-add/adhd-essentials/',
+        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
+      ),
+      ResourceModel(
+        title: 'Types of ADHD',
+        author: 'ADDitude Magazine',
+        url: 'https://www.additudemag.com/3-types-of-adhd/',
+        imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
+      ),
     ];
 
     final filteredResources = resources.where((resource) {
-      final titleMatch = resource['title']!.toLowerCase().contains(searchQuery);
-      final authorMatch =
-          resource['author']!.toLowerCase().contains(searchQuery);
+      final titleMatch = resource.title.toLowerCase().contains(searchQuery);
+      final authorMatch = resource.author?.toLowerCase().contains(searchQuery) ?? false;
       return titleMatch || authorMatch;
     }).toList();
 
@@ -171,26 +211,19 @@ class FeaturedResourcesList extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: filteredResources.length,
             itemBuilder: (context, index) {
-              return ResourceListItem(
-                title: filteredResources[index]['title']!,
-                author: filteredResources[index]['author']!,
-                url: filteredResources[index]['url']!,
-              );
+              final resource = filteredResources[index];
+              return ResourceListItem(resource: resource);
             },
           );
   }
 }
 
 class ResourceListItem extends StatelessWidget {
-  final String title;
-  final String author;
-  final String url;
+  final ResourceModel resource;
 
   const ResourceListItem({
     Key? key,
-    required this.title,
-    required this.author,
-    required this.url,
+    required this.resource,
   }) : super(key: key);
 
   @override
@@ -200,7 +233,7 @@ class ResourceListItem extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => WebViewPage(url: url, title: title),
+            builder: (context) => ResourceWebViewPage(resource: resource),
           ),
         );
       },
@@ -214,20 +247,22 @@ class ResourceListItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    resource.title,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'By: $author',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
+                  if (resource.author != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'By: ${resource.author}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -236,7 +271,7 @@ class ResourceListItem extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => WebViewPage(url: url, title: title),
+                    builder: (context) => ResourceWebViewPage(resource: resource),
                   ),
                 );
               },
@@ -253,39 +288,32 @@ class CollectionsGrid extends StatelessWidget {
   final String searchQuery;
 
   const CollectionsGrid({
-    Key? key, 
+    Key? key,
     this.searchQuery = '',
   }) : super(key: key);
-
 
   @override
   Widget build(BuildContext context) {
     final collections = [
-      {
-        'title': 'ADHD and Relationships',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
-        'url':
-            'https://www.helpguide.org/articles/add-adhd/adult-adhd-attention-deficit-disorder-and-relationships.htm'
-      },
-      {
-        'title': 'ADHD at Work',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
-        'url':
-            'https://www.nami.org/Blogs/NAMI-Blog/January-2019/How-to-Manage-the-Impact-of-ADHD-on-Your-Work-Life'
-      },
-      {
-        'title': 'ADHD and Education',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
-        'url':
-            'https://childmind.org/article/teachers-guide-to-adhd-in-the-classroom/'
-      },
+      ResourceModel(
+        title: 'ADHD and Relationships',
+        imageUrl: 'https://www.helpguide.org/wp-content/uploads/2023/02/ADHD-and-Relationships.jpeg',
+        url: 'https://www.helpguide.org/articles/add-adhd/adult-adhd-attention-deficit-disorder-and-relationships.htm',
+      ),
+      ResourceModel(
+        title: 'ADHD at Work',
+        imageUrl: 'https://img.lb.wbmdstatic.com/vim/live/webmd/consumer_assets/site_images/article_thumbnails/BigBead/ADHD_in_workplace_bigbead/1800x1200_adhd_in_workplace_bigbead.jpg',
+        url: 'https://www.webmd.com/add-adhd/adhd-in-the-workplace',
+      ),
+      ResourceModel(
+        title: 'ADHD and Education',
+        imageUrl: 'https://www.cdc.gov/adhd/media/images/teacherhelpingstudent1200_1.png',
+        url: 'https://childmind.org/article/adhd-behavior-problems/',
+      ),
     ];
 
     final filteredCollections = collections.where((collection) {
-      return collection['title']!.toLowerCase().contains(searchQuery);
+      return collection.title.toLowerCase().contains(searchQuery);
     }).toList();
 
     return filteredCollections.isEmpty
@@ -296,26 +324,19 @@ class CollectionsGrid extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               itemCount: filteredCollections.length,
               itemBuilder: (context, index) {
-                return CollectionCard(
-                  title: filteredCollections[index]['title']!,
-                  imageUrl: filteredCollections[index]['imageUrl']!,
-                  url: filteredCollections[index]['url']!,
-                );
+                return CollectionCard(resource: filteredCollections[index]);
               },
             ),
           );
   }
 }
+
 class CollectionCard extends StatelessWidget {
-  final String title;
-  final String imageUrl;
-  final String url;
+  final ResourceModel resource;
 
   const CollectionCard({
     Key? key,
-    required this.title,
-    required this.imageUrl,
-    required this.url,
+    required this.resource,
   }) : super(key: key);
 
   @override
@@ -325,7 +346,7 @@ class CollectionCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => WebViewPage(url: url, title: title),
+            builder: (context) => ResourceWebViewPage(resource: resource),
           ),
         );
       },
@@ -340,7 +361,7 @@ class CollectionCard extends StatelessWidget {
               child: Stack(
                 children: [
                   Image.network(
-                    imageUrl,
+                    resource.imageUrl,
                     height: 120,
                     width: 180,
                     fit: BoxFit.cover,
@@ -364,7 +385,7 @@ class CollectionCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              title,
+              resource.title,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -378,127 +399,186 @@ class CollectionCard extends StatelessWidget {
     );
   }
 }
+class ResourceWebViewPage extends StatefulWidget {
+  final ResourceModel resource;
 
-class WebViewPage extends StatefulWidget {
-  final String url;
-  final String title;
-
-  const WebViewPage({
-    Key? key,
-    required this.url,
-    required this.title,
-  }) : super(key: key);
+  const ResourceWebViewPage({Key? key, required this.resource})
+      : super(key: key);
 
   @override
-  State<WebViewPage> createState() => _WebViewPageState();
+  State<ResourceWebViewPage> createState() => _ResourceWebViewPageState();
 }
 
-class _WebViewPageState extends State<WebViewPage> {
-  final GlobalKey webViewKey = GlobalKey();
-  InAppWebViewController? webViewController;
+class _ResourceWebViewPageState extends State<ResourceWebViewPage> {
+  late final WebViewController _controller;
   bool isLoading = true;
-  double progress = 0;
+  String? errorMessage;
+  double loadingProgress = 0.0;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Stack(
-        children: [
-          InAppWebView(
-            onReceivedServerTrustAuthRequest: (controller, challenge) async {
-              return ServerTrustAuthResponse(
-                  action: ServerTrustAuthResponseAction.PROCEED);
-            },
-            key: webViewKey,
-            initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-            initialOptions: InAppWebViewGroupOptions(
-              crossPlatform: InAppWebViewOptions(
-                useShouldOverrideUrlLoading: true,
-                mediaPlaybackRequiresUserGesture: false,
-                clearCache: true,
-
-                preferredContentMode: UserPreferredContentMode.MOBILE,
-                supportZoom: false,
-                useOnLoadResource: true,
-                javaScriptEnabled: true,
-                // clearSessionCache: true,
-              ),
-              ios: IOSInAppWebViewOptions(
-                allowsInlineMediaPlayback: true,
-                allowsBackForwardNavigationGestures: true,
-                allowsLinkPreview: false,
-                isFraudulentWebsiteWarningEnabled: true,
-                disableLongPressContextMenuOnLinks: true,
-              ),
-            ),
-            onWebViewCreated: (controller) {
-              webViewController = controller;
-              controller.clearCache();
-              CookieManager().deleteAllCookies();
-            },
-            onLoadStart: (controller, url) {
-              setState(() {
-                isLoading = true;
-              });
-            },
-            onLoadStop: (controller, url) {
-              setState(() {
-                isLoading = false;
-              });
-            },
-            onProgressChanged: (controller, progress) {
-              setState(() {
-                this.progress = progress / 100;
-              });
-            },
-            onLoadError: (controller, url, code, message) {
-              setState(() {
-                isLoading = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Error loading page: $message'),
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            },
-            onLoadHttpError: (controller, url, statusCode, description) {
-              setState(() {
-                isLoading = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('HTTP Error $statusCode: $description'),
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            },
-          ),
-          if (isLoading)
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 10),
-                  Text('Loading... ${(progress * 100).toStringAsFixed(0)}%'),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
+  void initState() {
+    super.initState();
+    _initializeWebView();
   }
 
   @override
   void dispose() {
+    _controller.clearCache();
     super.dispose();
+  }
+
+  Future<void> _initializeWebView() async {
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.white)
+      ..enableZoom(true)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            if (mounted) {
+              setState(() {
+                isLoading = true;
+                errorMessage = null;
+                loadingProgress = 0.0;
+              });
+            }
+          },
+          onProgress: (int progress) {
+            if (mounted) {
+              setState(() {
+                loadingProgress = progress / 100;
+              });
+            }
+          },
+          onPageFinished: (String url) {
+            if (mounted) {
+              setState(() {
+                isLoading = false;
+              });
+            }
+          },
+          onWebResourceError: (WebResourceError error) {
+            if (mounted) {
+              setState(() {
+                isLoading = false;
+                errorMessage = _getErrorMessage(error);
+                print('WebView error: ${error.description}');
+              });
+            }
+          },
+          // Allow all navigation requests
+          onNavigationRequest: (NavigationRequest request) {
+            return NavigationDecision.navigate;
+          },
+        ),
+      );
+
+    try {
+      await _controller.loadRequest(
+        Uri.parse(widget.resource.url),
+        headers: {
+          'Accept': '*/*', // Accept all content types
+          'Accept-Language': 'en-US,en;q=0.5',
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          errorMessage = 'Failed to load the page: $e';
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _getErrorMessage(WebResourceError error) {
+    return 'Error loading page: ${error.description}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        if (await _controller.canGoBack()) {
+          await _controller.goBack();
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.resource.title),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                setState(() {
+                  isLoading = true;
+                  errorMessage = null;
+                  loadingProgress = 0.0;
+                });
+                _controller.reload();
+              },
+            ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            if (errorMessage != null)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline,
+                          size: 48, color: Colors.red[300]),
+                      const SizedBox(height: 16),
+                      Text(
+                        errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.red[700]),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            isLoading = true;
+                            errorMessage = null;
+                            loadingProgress = 0.0;
+                          });
+                          _controller.reload();
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Try Again'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              WebViewWidget(controller: _controller),
+            if (isLoading)
+              Container(
+                color: Colors.white,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                          value: loadingProgress > 0 ? loadingProgress : null),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Loading... ${(loadingProgress * 100).toInt()}%',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }

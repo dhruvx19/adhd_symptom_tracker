@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 // First, let's create the SymptomProvider
 class SymptomProvider extends ChangeNotifier {
   final _storage = FlutterSecureStorage();
+   String? date;
   Map<String, bool> _symptomSelection = {};
   bool _isLoading = false;
   String? _error;
@@ -19,6 +20,10 @@ class SymptomProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isInitialized => _isInitialized;
+  void updateDate(String value) {
+    date = value.trim();
+    notifyListeners();
+  }
 
   Future<void> fetchSymptoms() async {
     if (_isInitialized) return;
@@ -82,7 +87,7 @@ class SymptomProvider extends ChangeNotifier {
         },
         body: json.encode({
           'symptoms': symptoms,
-          'date': DateTime.now().toIso8601String().split('T')[0],
+          'date': date,
           'severity': severity,
           'timeOfDay': timeOfDay,
           'notes': notes,
