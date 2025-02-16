@@ -1,7 +1,7 @@
-import 'package:ADHD_Tracker/providers.dart/mood_chart_provider.dart';
-import 'package:ADHD_Tracker/providers.dart/symptom_chart_provider.dart';
-import 'package:ADHD_Tracker/ui/representation/mood/mood_chart.dart';
-import 'package:ADHD_Tracker/ui/representation/symptom/symptom_chart.dart';
+import 'package:adhd_tracker/providers.dart/mood_chart_provider.dart';
+import 'package:adhd_tracker/providers.dart/symptom_chart_provider.dart';
+import 'package:adhd_tracker/ui/representation/mood/mood_chart.dart';
+import 'package:adhd_tracker/ui/representation/symptom/symptom_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';

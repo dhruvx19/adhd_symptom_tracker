@@ -1,4 +1,4 @@
-package com.example.ADHD_Tracker
+package com.example.adhd_tracker
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,4 +1,4 @@
-# ADHD_Tracker
+# adhd_tracker
 
 A new Flutter project.
 

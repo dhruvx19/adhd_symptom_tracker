@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/utils/color.dart';
 
 class NotificationService {
    static const String REMINDER_CHANNEL_KEY = 'reminder_channel';
@@ -23,7 +23,7 @@ class NotificationService {
   };
   static Future<bool> initializeNotifications() async {
     return await AwesomeNotifications().initialize(
-      'resource://drawable/notification_icon',
+      'resource://drawable/logo',
       [
         NotificationChannel(
           channelKey: REMINDER_CHANNEL_KEY,
@@ -48,8 +48,8 @@ class NotificationService {
         body: "It's time for your daily mindfulness check-in!",
         notificationLayout: NotificationLayout.Default,
         category: NotificationCategory.Reminder,
-        bigPicture: 'resource://drawable/notification_icon',
-        largeIcon: 'resource://drawable/notification_icon',
+        bigPicture: 'https://i.postimg.cc/c45pcbvZ/logo-removebg-preview-3.png',
+        largeIcon: 'https://i.postimg.cc/c45pcbvZ/logo-removebg-preview-3.png',
       ),
       schedule: NotificationCalendar(
         hour: 19,
@@ -93,7 +93,7 @@ class NotificationService {
     return true;
   }
 
-  static Future<bool> scheduleReminder({
+ static Future<bool> scheduleReminder({
     required BuildContext context,
     required String title,
     required String notes,
@@ -103,13 +103,12 @@ class NotificationService {
     required String sound,
   }) async {
     try {
-      // First check/request permissions
+      // Permission check remains the same
       final hasPermission = await requestPermission(context);
       if (!hasPermission) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content:
-                Text('Notifications permission is required to set reminders'),
+            content: Text('Notifications permission is required to set reminders'),
             duration: Duration(seconds: 4),
           ),
         );
@@ -124,56 +123,89 @@ class NotificationService {
         selectedTime.minute,
       );
 
-      final intervalMinutes = _getIntervalMinutes(frequency);
-
-      final int notificationCount = _getNotificationCount(frequency);
-
-      // Schedule notifications based on frequency
-      for (int i = 0; i < notificationCount; i++) {
-        final int minutesInterval = i * 5;
-
-        final created = await AwesomeNotifications().createNotification(
-          content: NotificationContent(
-            id: DateTime.now().millisecondsSinceEpoch.remainder(100000) + i,
-            channelKey: 'reminder_channel',
-            title: title,
-            body: notes,
-            notificationLayout: NotificationLayout.Default,
-            category: NotificationCategory.Reminder,
-            customSound: soundMap[sound],
-            bigPicture: 'resource://drawable/notification_icon',
-            largeIcon: 'resource://drawable/notification_icon',
-          ),
-          schedule: NotificationCalendar(
-            year: scheduledDate.year,
-            month: scheduledDate.month,
-            day: scheduledDate.day,
-            hour: scheduledDate.hour,
-            minute: scheduledDate.minute + minutesInterval,
-            second: 0,
-            millisecond: 0,
-            repeats: false,
-            allowWhileIdle: true,
+      if (scheduledDate.isBefore(DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a future time for the reminder'),
+            duration: Duration(seconds: 4),
           ),
         );
+        return false;
+      }
 
-        if (!created) {
-          throw Exception('Failed to schedule notification');
+      final notificationCount = _getNotificationCount(frequency);
+      int successfulSchedules = 0;
+
+      for (int i = 0; i < notificationCount; i++) {
+        final int minutesInterval = i * 5;
+        final notificationTime = scheduledDate.add(Duration(minutes: minutesInterval));
+        
+        if (notificationTime.isBefore(DateTime.now())) {
+          continue;
+        }
+
+        try {
+          await AwesomeNotifications().createNotification(
+            content: NotificationContent(
+              id: DateTime.now().millisecondsSinceEpoch.remainder(100000) + i,
+              channelKey: REMINDER_CHANNEL_KEY,
+              title: title,
+              body: notes,
+              notificationLayout: NotificationLayout.Default,
+              category: NotificationCategory.Reminder,
+              customSound: soundMap[sound],
+              bigPicture: 'https://i.postimg.cc/c45pcbvZ/logo-removebg-preview-3.png',
+              largeIcon: 'https://i.postimg.cc/c45pcbvZ/logo-removebg-preview-3.png',
+            ),
+            schedule: NotificationCalendar(
+              year: notificationTime.year,
+              month: notificationTime.month,
+              day: notificationTime.day,
+              hour: notificationTime.hour,
+              minute: notificationTime.minute,
+              second: 0,
+              millisecond: 0,
+              repeats: false,
+              allowWhileIdle: true,
+            ),
+          );
+          
+          print('Notification $i scheduled for: ${notificationTime.toString()}');
+          successfulSchedules++; // Increment on successful scheduling
+        } catch (e) {
+          print('Error scheduling individual notification: $e');
         }
       }
 
-      return true;
+      if (successfulSchedules > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully scheduled $successfulSchedules ${successfulSchedules == 1 ? 'reminder' : 'reminders'}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return true; // Return true if any notifications were scheduled
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not schedule any notifications. Please try a different time.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+        return false;
+      }
+
     } catch (e) {
+      print('Error scheduling reminder: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You cannot create a notification for a past time. Please select a future time and try again.'),
-          duration: Duration(seconds: 4),
+        SnackBar(
+          content: Text('Failed to schedule reminder: ${e.toString()}'),
+          duration: const Duration(seconds: 4),
         ),
       );
       return false;
     }
   }
-
   static int _getNotificationCount(String frequency) {
     switch (frequency.toLowerCase()) {
       case 'once':
@@ -192,9 +224,9 @@ class NotificationService {
       case 'once':
         return 0;
       case 'twice':
-        return 30;
+        return 5;  // Changed from 30 to 5 minutes
       case 'thrice':
-        return 20;
+        return 5;  // Changed from 20 to 5 minutes
       default:
         return 0;
     }

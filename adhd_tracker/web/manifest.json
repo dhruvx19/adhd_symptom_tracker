@@ -1,6 +1,6 @@
 {
-    "name": "ADHD_Tracker",
-    "short_name": "ADHD_Tracker",
+    "name": "adhd_tracker",
+    "short_name": "adhd_tracker",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

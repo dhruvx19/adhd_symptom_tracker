@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ADHD_Tracker/models/database_helper.dart';
-import 'package:ADHD_Tracker/models/goals.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/models/database_helper.dart';
+import 'package:adhd_tracker/models/goals.dart';
+import 'package:adhd_tracker/utils/color.dart';
 
 class NewGoalPage extends StatefulWidget {
   const NewGoalPage({super.key});

@@ -3,7 +3,7 @@ import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:ADHD_Tracker/helpers/notification.dart';
+import 'package:adhd_tracker/helpers/notification.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginProvider with ChangeNotifier {
@@ -27,16 +27,55 @@ class LoginProvider with ChangeNotifier {
 
   // Initialize provider and check for existing token
   Future<void> initialize() async {
-    final token = await _secureStorage.read(key: _tokenKey);
-    if (token != null) {
-      _token = token;
-      _isLoggedIn = true;
-      await NotificationService.initializeNotifications();
-
-      await NotificationService.scheduleDailyReminder();
+    try {
+      final token = await _secureStorage.read(key: _tokenKey);
+      debugPrint('Retrieved token: $token');
+      
+      if (token != null) {
+        // Validate token on server
+        final isValid = await _validateToken(token);
+        if (isValid) {
+          _token = token;
+          _isLoggedIn = true;
+          await NotificationService.initializeNotifications();
+          await NotificationService.scheduleDailyReminder();
+          debugPrint('Login state initialized: $_isLoggedIn');
+        } else {
+          // If token is invalid, clear it
+          await _secureStorage.delete(key: _tokenKey);
+          _token = null;
+          _isLoggedIn = false;
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error during initialization: $e');
+      // Handle error but don't clear token on network errors
+      if (!e.toString().contains('SocketException')) {
+        await _secureStorage.delete(key: _tokenKey);
+        _token = null;
+        _isLoggedIn = false;
+      }
+      notifyListeners();
     }
-    notifyListeners();
   }
+
+  Future<bool> _validateToken(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Token validation error: $e');
+      // Return true on network errors to prevent logout
+      return true;
+    }
+  }
+
 
   Future<void> _handleSuccessfulLogin(Map<String, dynamic> responseData) async {
     final token = responseData['data'] as String;

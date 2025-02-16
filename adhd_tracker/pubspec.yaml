@@ -1,4 +1,4 @@
-name: ADHD_Tracker
+name: adhd_tracker
 description: "A new Flutter project."
 publish_to: "none"
 version: 1.0.0+1
@@ -10,6 +10,7 @@ dependencies:
   awesome_notifications: ^0.8.0
   cached_network_image: ^3.4.1
   cupertino_icons: ^1.0.8
+  file_picker: ^8.3.5
   fl_chart: ^0.70.2
   flutter:
     sdk: flutter
@@ -44,6 +45,7 @@ flutter:
 
   assets:
     - assets/images/logo.png
+    - assets/images/default.png
 
   fonts:
     - family: Nordique

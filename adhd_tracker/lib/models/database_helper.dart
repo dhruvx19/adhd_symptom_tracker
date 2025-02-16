@@ -1,4 +1,4 @@
-import 'package:ADHD_Tracker/models/goals.dart';
+import 'package:adhd_tracker/models/goals.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -11,7 +11,7 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('ADHD_Tracker.db');
+    _database = await _initDB('adhd_tracker.db');
     return _database!;
   }
 

@@ -1,18 +1,18 @@
 import 'dart:convert';
 
-import 'package:ADHD_Tracker/ui/representation/mood/mood_analytics.dart';
+import 'package:adhd_tracker/ui/representation/mood/mood_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ADHD_Tracker/helpers/theme.dart';
-import 'package:ADHD_Tracker/providers.dart/login_provider.dart';
-import 'package:ADHD_Tracker/providers.dart/users_provider.dart';
-import 'package:ADHD_Tracker/services/change_pass.dart';
-import 'package:ADHD_Tracker/ui/auth/login.dart';
-import 'package:ADHD_Tracker/ui/personal_info.dart';
-import 'package:ADHD_Tracker/ui/representation/mood/mood_chart.dart';
-import 'package:ADHD_Tracker/ui/settings/resources.dart';
+import 'package:adhd_tracker/helpers/theme.dart';
+import 'package:adhd_tracker/providers.dart/login_provider.dart';
+import 'package:adhd_tracker/providers.dart/users_provider.dart';
+import 'package:adhd_tracker/services/change_pass.dart';
+import 'package:adhd_tracker/ui/auth/login.dart';
+import 'package:adhd_tracker/ui/personal_info.dart';
+import 'package:adhd_tracker/ui/representation/mood/mood_chart.dart';
+import 'package:adhd_tracker/ui/settings/resources.dart';
 import 'package:provider/provider.dart';
-import 'package:ADHD_Tracker/models/user_model.dart';
+import 'package:adhd_tracker/models/user_model.dart';
 import 'package:share_plus/share_plus.dart';
 class SettingsPage extends StatefulWidget {
   @override
@@ -27,48 +27,49 @@ class _SettingsPageState extends State<SettingsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UserProvider>().fetchProfileData();
     });
-    Provider.of<UserProvider>(context, listen: false).fetchProfileData();
+    
   }
 
-  Widget _buildProfileImage(String? base64Image) {
-    if (base64Image == null || base64Image.isEmpty) {
-      return CircleAvatar(
-        radius: 40,
-        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-        child: Icon(
-          Icons.person,
-          size: 40,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      );
-    }
+  Widget _buildProfileImage(String? imageData) {
+  // Default avatar widget
+  Widget defaultAvatar = CircleAvatar(
+    radius: 40,
+    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+    child: Icon(
+      Icons.person,
+      size: 40,
+      color: Theme.of(context).colorScheme.primary,
+    ),
+  );
 
-    try {
-      return CircleAvatar(
-        radius: 40,
-        backgroundImage: MemoryImage(base64Decode(base64Image)),
-        onBackgroundImageError: (e, stack) {
-          if (kDebugMode) {
-            print('Error loading image: $e');
-          }
-        },
-      );
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error decoding base64 image: $e');
-      }
-      return CircleAvatar(
-        radius: 40,
-        backgroundColor: Theme.of(context).colorScheme.error.withOpacity(0.1),
-        child: Icon(
-          Icons.error,
-          size: 40,
-          color: Theme.of(context).colorScheme.error,
-        ),
-      );
-    }
+  if (imageData == null || imageData.isEmpty) {
+    return defaultAvatar;
   }
 
+  // Check if the image data is a URL (simple check for http/https)
+  if (imageData.startsWith('http')) {
+    return CircleAvatar(
+      radius: 40,
+      backgroundImage: NetworkImage(imageData),
+      
+    );
+  }
+
+  // Try to decode as base64
+  try {
+    return CircleAvatar(
+      radius: 40,
+      backgroundImage: MemoryImage(base64Decode(imageData)),
+      
+        
+    );
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error decoding image data: $e');
+    }
+    return defaultAvatar;
+  }
+}
   Future<void> _handleLogout() async {
 
     try {
@@ -241,8 +242,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   icon: Icons.share,
                   title: 'Share the app',
                   onTap: () => Share.share(
-                    'Check out ADHD_Tracker App! It helps you track your medications and symptoms.',
-                    subject: 'ADHD_Tracker App',
+                    'Check out adhd_tracker App! It helps you track your medications and symptoms.',
+                    subject: 'adhd_tracker App',
                   ),
                 ),
                 _buildDivider(),
@@ -297,17 +298,3 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-// final collections = [
-//     {
-//       'title': 'ADHD and Relationships',
-//       'imageUrl':
-//           'https://images.unsplash.com/photo-1529156069898-49953e39b3ac',
-//       'url':
-//           'https://www.helpguide.org/articles/add-adhd/adult-adhd-attention-deficit-disorder-and-relationships.htm'
-//     },
-//     // ... other items
-//   ];
-
-//   final resources = collections
-//       .map((item) => ResourceModel.fromMap(item))
-//       .toList();

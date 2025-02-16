@@ -1,13 +1,16 @@
-import 'package:ADHD_Tracker/ui/forget_password.dart';
+import 'package:adhd_tracker/helpers/theme.dart';
+import 'package:adhd_tracker/ui/forget_password.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ADHD_Tracker/providers.dart/login_provider.dart';
-import 'package:ADHD_Tracker/providers.dart/signup_provider.dart';
-import 'package:ADHD_Tracker/ui/auth/create_profile.dart';
-import 'package:ADHD_Tracker/ui/auth/signin.dart';
-import 'package:ADHD_Tracker/ui/home/mood.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/providers.dart/login_provider.dart';
+import 'package:adhd_tracker/providers.dart/signup_provider.dart';
+import 'package:adhd_tracker/ui/auth/create_profile.dart';
+import 'package:adhd_tracker/ui/auth/signin.dart';
+import 'package:adhd_tracker/ui/home/mood.dart';
+import 'package:adhd_tracker/utils/color.dart';
 import 'package:provider/provider.dart';
+import 'package:adhd_tracker/helpers/notification.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,8 +24,21 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  final Color darkPurple = const Color(0xFF2D2642);
   bool isPasswordVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkNotificationPermission();
+  }
+
+  Future<void> _checkNotificationPermission() async {
+    final isAllowed = await AwesomeNotifications().isNotificationAllowed();
+    if (!isAllowed) {
+      if (!mounted) return;
+      await NotificationService.requestPermission(context);
+    }
+  }
 
   @override
   void dispose() {
@@ -41,7 +57,6 @@ class _LoginPageState extends State<LoginPage> {
             ChangeNotifierProvider.value(
               value: Provider.of<LoginProvider>(context, listen: false),
             ),
-            // Add other providers if needed
           ],
           child: MoodPage(),
         ),
@@ -54,24 +69,38 @@ class _LoginPageState extends State<LoginPage> {
 
     final loginProvider = Provider.of<LoginProvider>(context, listen: false);
 
-    final success = await loginProvider.login(
-        _emailController.text.trim(), _passwordController.text);
+    try {
+      final success = await loginProvider.login(
+          _emailController.text.trim(), _passwordController.text);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (success) {
-      _navigateToMoodPage(context);
-    } else {
-      // Show error message
+      if (success) {
+        // Check notification permission after successful login
+        final isAllowed = await AwesomeNotifications().isNotificationAllowed();
+        if (!isAllowed) {
+          if (!mounted) return;
+          await NotificationService.requestPermission(context);
+        }
+        
+        _navigateToMoodPage(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loginProvider.errorMessage ?? 'Login failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(loginProvider.errorMessage ?? 'Login failed'),
+        const SnackBar(
+          content: Text('An error occurred during login'),
           backgroundColor: Colors.red,
         ),
       );
     }
   }
-
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Email is required';
@@ -96,12 +125,46 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final fontScale = size.width / 375.0;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final darkPurple = Theme.of(context).textTheme.titleLarge?.color;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
+      backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+      appBar:AppBar(
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        
+        
+        actions: [
+          PopupMenuButton<String>(
+            icon: Icon(Icons.settings, color: Theme.of(context).iconTheme.color),
+            onSelected: (value) {
+              if (value == 'theme') {
+                themeProvider.toggleTheme();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                value: 'theme',
+                child: Row(
+                  children: [
+                    Icon(
+                      themeProvider.isDarkMode
+                          ? Icons.light_mode
+                          : Icons.dark_mode,
+                      color: Theme.of(context).iconTheme.color,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      themeProvider.isDarkMode
+                          ? 'Switch to Light Mode'
+                          : 'Switch to Dark Mode',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Consumer<LoginProvider>(
         builder: (context, provider, child) {
@@ -141,6 +204,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 4),
                     TextFormField(
+                        style: TextStyle(color: Colors.black),
                       controller: _emailController,
                       validator: _validateEmail,
                       keyboardType: TextInputType.emailAddress,
@@ -169,6 +233,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 4),
                     TextFormField(
+                        style: TextStyle(color: Colors.black),
                       controller: _passwordController,
                       validator: _validatePassword,
                       obscureText: !isPasswordVisible,

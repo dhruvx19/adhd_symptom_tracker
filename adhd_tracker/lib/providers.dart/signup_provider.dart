@@ -3,8 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:ADHD_Tracker/utils/constants.dart';
-import 'package:ADHD_Tracker/utils/validators.dart';
+import 'package:adhd_tracker/utils/constants.dart';
+import 'package:adhd_tracker/utils/validators.dart';
 import 'package:http/http.dart' as http;
 
 class SignUpProvider with ChangeNotifier {

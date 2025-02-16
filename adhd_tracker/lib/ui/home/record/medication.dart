@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ADHD_Tracker/providers.dart/medication_provider.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/providers.dart/medication_provider.dart';
+import 'package:adhd_tracker/utils/color.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 

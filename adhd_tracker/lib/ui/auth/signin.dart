@@ -1,11 +1,12 @@
+import 'package:adhd_tracker/helpers/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ADHD_Tracker/providers.dart/signup_provider.dart';
-import 'package:ADHD_Tracker/ui/auth/create_profile.dart';
-import 'package:ADHD_Tracker/ui/auth/login.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/providers.dart/signup_provider.dart';
+import 'package:adhd_tracker/ui/auth/create_profile.dart';
+import 'package:adhd_tracker/ui/auth/login.dart';
+import 'package:adhd_tracker/utils/color.dart';
 import 'package:provider/provider.dart';
 
 import '../../utils/constants.dart';
@@ -19,13 +20,20 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
 
-  final Color darkPurple = const Color(0xFF2D2642);
+
 
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final otpController = TextEditingController();
   bool isPasswordVisible = false;
+  late final SignUpProvider _signUpProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _signUpProvider = SignUpProvider();
+  }
 
   @override
   void dispose() {
@@ -33,6 +41,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     emailController.dispose();
     passwordController.dispose();
     otpController.dispose();
+    _signUpProvider.dispose();
     super.dispose();
   }
 
@@ -55,21 +64,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   
   void _navigateToProfilePage(BuildContext context) {
-    if (!mounted) return;
+  if (!mounted) return;
 
-    // Get the existing provider instance
-    final signUpProvider = context.read<SignUpProvider>();
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider.value(
-          value: signUpProvider,
-          child: const ProfileCreationPage(),
-        ),
-      ),
-    );
-  }
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const ProfileCreationPage(),
+    ),
+  );
+}
 
   void _handleOtpVerification(
       BuildContext context, SignUpProvider provider) async {
@@ -102,16 +105,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final fontScale = size.width / 375.0;
-    return ChangeNotifierProvider(
-      create: (_) => SignUpProvider(),
+       final themeProvider = Provider.of<ThemeProvider>(context);
+    final darkPurple = Theme.of(context).textTheme.titleLarge?.color;
+    return ChangeNotifierProvider.value(
+      value: _signUpProvider,
       child: Scaffold(
-        backgroundColor: AppTheme.background,
+       backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         appBar: AppBar(
-          backgroundColor: AppTheme.background,
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           elevation: 0,
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: AppTheme.upeiGreen),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const LoginPage(),
+    ),
+  ),
           ),
         ),
         body: Consumer<SignUpProvider>(
@@ -150,9 +160,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             )),
                         const SizedBox(height: 4),
                         TextField(
+                              style: TextStyle(color: Colors.black),
                           controller: nameController,
                           decoration: InputDecoration(
                             hintText: 'Enter your name',
+                               hintStyle: TextStyle(color: Colors.grey[600]),
                             fillColor: Colors.grey[200],
                             filled: true,
                             border: OutlineInputBorder(
@@ -173,9 +185,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             )),
                         const SizedBox(height: 4),
                         TextField(
+                              style: TextStyle(color: Colors.black),
                           controller: emailController,
                           decoration: InputDecoration(
                             hintText: 'Enter email',
+                               hintStyle: TextStyle(color: Colors.grey[600]),
                             fillColor: Colors.grey[200],
                             filled: true,
                             border: OutlineInputBorder(
@@ -196,10 +210,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             )),
                         const SizedBox(height: 4),
                         TextField(
+                              style: TextStyle(color: Colors.black),
                           controller: passwordController,
                           obscureText: !isPasswordVisible,
                           decoration: InputDecoration(
                             hintText: 'Enter password',
+                               hintStyle: TextStyle(color: Colors.grey[600]),
                             fillColor: Colors.grey[200],
                             filled: true,
                             border: OutlineInputBorder(
@@ -233,6 +249,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               )),
                           const SizedBox(height: 4),
                           TextField(
+                                style: TextStyle(color: Colors.black),
                             controller: otpController,
                             keyboardType: TextInputType.number,
                             inputFormatters: [
@@ -241,6 +258,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ],
                             decoration: InputDecoration(
                               hintText: 'Enter 6-digit OTP',
+                                 hintStyle: TextStyle(color: Colors.grey[600]),
                               fillColor: Colors.grey[200],
                               filled: true,
                               border: OutlineInputBorder(

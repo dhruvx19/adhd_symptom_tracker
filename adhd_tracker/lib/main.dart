@@ -1,17 +1,16 @@
-import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:ADHD_Tracker/helpers/notification.dart';
-import 'package:ADHD_Tracker/helpers/theme.dart';
-import 'package:ADHD_Tracker/providers.dart/home_provider.dart';
-import 'package:ADHD_Tracker/providers.dart/login_provider.dart';
-import 'package:ADHD_Tracker/providers.dart/medication_provider.dart';
-import 'package:ADHD_Tracker/providers.dart/profile_provider.dart';
-import 'package:ADHD_Tracker/providers.dart/signup_provider.dart';
-import 'package:ADHD_Tracker/providers.dart/symptom_provider.dart';
-import 'package:ADHD_Tracker/providers.dart/users_provider.dart';
-import 'package:ADHD_Tracker/ui/auth/create_profile.dart';
+import 'package:adhd_tracker/helpers/notification.dart';
+import 'package:adhd_tracker/helpers/theme.dart';
+import 'package:adhd_tracker/providers.dart/home_provider.dart';
+import 'package:adhd_tracker/providers.dart/login_provider.dart';
+import 'package:adhd_tracker/providers.dart/medication_provider.dart';
+import 'package:adhd_tracker/providers.dart/profile_provider.dart';
+import 'package:adhd_tracker/providers.dart/signup_provider.dart';
+import 'package:adhd_tracker/providers.dart/symptom_provider.dart';
+import 'package:adhd_tracker/providers.dart/users_provider.dart';
+import 'package:adhd_tracker/ui/auth/create_profile.dart';
 
-import 'package:ADHD_Tracker/ui/splash.dart';
+import 'package:adhd_tracker/ui/splash.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -22,7 +21,7 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => LoginProvider()),
+        ChangeNotifierProvider(create: (_) => LoginProvider()..initialize(),),
         ChangeNotifierProvider(create: (_) => SignUpProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),

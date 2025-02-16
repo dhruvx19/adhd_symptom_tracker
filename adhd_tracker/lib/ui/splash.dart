@@ -1,12 +1,17 @@
+import 'dart:convert';
+
+import 'package:adhd_tracker/ui/auth/create_profile.dart';
 import 'package:flutter/material.dart';
-import 'package:ADHD_Tracker/helpers/notification.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/helpers/notification.dart';
+import 'package:adhd_tracker/utils/color.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
-import 'package:ADHD_Tracker/providers.dart/login_provider.dart';
-import 'package:ADHD_Tracker/ui/auth/login.dart';
-import 'package:ADHD_Tracker/ui/home/mood.dart';
-import 'package:ADHD_Tracker/ui/home/home.dart';
+import 'package:adhd_tracker/providers.dart/login_provider.dart';
+import 'package:adhd_tracker/ui/auth/login.dart';
+import 'package:adhd_tracker/ui/home/mood.dart';
+import 'package:adhd_tracker/ui/home/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -58,40 +63,76 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _initializeApp() async {
+  try {
     final prefs = await SharedPreferences.getInstance();
-    isFirstTime = prefs.getBool('is_first_time') ?? true;
+    final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+    
+    if (!mounted) return;
+    
+    setState(() {
+      isFirstTime = prefs.getBool('is_first_time') ?? true;
+    });
 
-    if (!isFirstTime) {
-      // Request notification permissions
-      if (mounted) {
-        await NotificationService.requestPermission(context);
-      }
+    // First time users should stay on splash screen
+    if (isFirstTime) {
+      return;
+    }
 
-      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
-      await loginProvider.initialize();
+    // Initialize login provider and check token
+    await loginProvider.initialize();
+    
+    if (!mounted) return;
 
-      if (loginProvider.isLoggedIn) {
-        // Check if mood is recorded for today
-        final lastRecordedDate = prefs.getString('last_mood_date');
-        final today = DateTime.now().toIso8601String().split('T')[0];
-
-        await Future.delayed(const Duration(milliseconds: 2000));
-
-        if (!mounted) return;
-
-        if (lastRecordedDate != today) {
-          _navigateToPage(MoodPage());
-        } else {
-          _navigateToPage(HomePage());
-        }
+    // Simple logic: If we have a token, go to mood page
+    if (loginProvider.isLoggedIn) {
+      await Future.delayed(const Duration(milliseconds: 1500)); // Keep splash animation
+      if (!mounted) return;
+      _navigateToPage(MoodPage()); // Directly go to mood page if logged in
+    } else {
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (!mounted) return;
+      _navigateToPage(const LoginPage());
+    }
+  } catch (e) {
+    debugPrint('Error in _initializeApp: $e');
+    if (mounted) {
+      // Only navigate to login if there's a real authentication issue
+      final storage = const FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      if (token != null) {
+        _navigateToPage(MoodPage()); // If we have a token, still try to go to mood
       } else {
-        await Future.delayed(const Duration(milliseconds: 2000));
-        if (!mounted) return;
         _navigateToPage(const LoginPage());
       }
     }
   }
+}
+// Add this new method to check profile completion
+Future<bool> _checkProfileCompletion() async {
+  try {
+    final token = await const FlutterSecureStorage().read(key: 'auth_token');
+    if (token == null) return false;
 
+    final response = await http.get(
+      Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body)['data'];
+      return data['isProfilePictureSet'] && 
+             data['addMedication'] && 
+             data['addSymptoms'] && 
+             data['addStrategies'];
+    }
+    return false;
+  } catch (e) {
+    print('Error checking profile completion: $e');
+    return false;
+  }
+}
   Future<void> _handleGetStarted() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_first_time', false);

@@ -1,5 +1,5 @@
-import 'package:ADHD_Tracker/providers.dart/login_provider.dart';
-import 'package:ADHD_Tracker/ui/home/home.dart';
+import 'package:adhd_tracker/providers.dart/login_provider.dart';
+import 'package:adhd_tracker/ui/home/home.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';

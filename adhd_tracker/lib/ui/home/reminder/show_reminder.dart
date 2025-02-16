@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:ADHD_Tracker/models/reminder_db.dart';
-import 'package:ADHD_Tracker/models/reminder_model.dart';
-import 'package:ADHD_Tracker/ui/home/reminder/reminder.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/models/reminder_db.dart';
+import 'package:adhd_tracker/models/reminder_model.dart';
+import 'package:adhd_tracker/ui/home/reminder/reminder.dart';
+import 'package:adhd_tracker/utils/color.dart';
 
 class ReminderListPage extends StatefulWidget {
   const ReminderListPage({super.key});

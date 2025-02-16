@@ -1,12 +1,11 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ADHD_Tracker/helpers/notification.dart';
-import 'package:ADHD_Tracker/models/goals.dart';
-import 'package:ADHD_Tracker/models/reminder_db.dart';
-import 'package:ADHD_Tracker/models/reminder_model.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/helpers/notification.dart';
+import 'package:adhd_tracker/models/goals.dart';
+import 'package:adhd_tracker/models/reminder_db.dart';
+import 'package:adhd_tracker/models/reminder_model.dart';
+import 'package:adhd_tracker/utils/color.dart';
 
 class ReminderPage extends StatefulWidget {
   const ReminderPage({super.key});
@@ -17,21 +16,26 @@ class ReminderPage extends StatefulWidget {
 
 class _ReminderPageState extends State<ReminderPage> {
   final List<String> _soundOptions = NotificationService.soundMap.keys.toList();
-  final List<String> _frequencyOptions = [
-    'Once',
-    'Twice',
-    'Thrice',
-  ];
+  final List<String> _frequencyOptions = ['Once', 'Twice', 'Thrice'];
+  
   String? _selectedSound;
   DateTime? _startDate;
-  DateTime? _endDate;
   TimeOfDay? _selectedTime;
-  String? selectedFrequency;
   String? _selectedFrequency;
+  
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
   Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _scrollController.dispose();
+    _notesController.dispose();
+    _titleController.dispose();
+    super.dispose();
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime today = DateTime.now();
@@ -49,78 +53,6 @@ class _ReminderPageState extends State<ReminderPage> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _saveReminder() async {
-    if (_startDate == null ||
-        _selectedFrequency == null ||
-        _selectedTime == null ||
-        _titleController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
-      );
-      return;
-    }
-
-    final success = await NotificationService.scheduleReminder(
-      context: context,
-      title: _titleController.text,
-      notes: _notesController.text,
-      startDate: _startDate!,
-      selectedTime: _selectedTime!,
-      frequency: _selectedFrequency!,
-      sound: _selectedSound ?? 'Default',
-    );
-
-    if (success) {
-      final reminder = Reminder(
-        name: _titleController.text,
-        frequency: _selectedFrequency!,
-        startDate: _startDate!,
-        notes: _notesController.text,
-        scheduledTime: _selectedTime!,
-        sound: _selectedSound,
-      );
-
-      await DatabaseHelper.instance.insertReminder(reminder);
-      Navigator.pop(context);
-    }
-  }
-
-  void _saveToList() async {
-    if (_startDate == null ||
-        _selectedFrequency == null ||
-        _selectedTime == null ||
-        _titleController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
-      );
-      return;
-    }
-
-    final reminder = Reminder(
-      name: _titleController.text,
-      frequency: _selectedFrequency!,
-      startDate: _startDate!,
-      notes: _notesController.text,
-      scheduledTime: _selectedTime!,
-      sound: _selectedSound,
-    );
-
-    await DatabaseHelper.instance.insertReminder(reminder);
-    Navigator.pop(context);
-  }
-
   Future<void> _selectTime(BuildContext context) async {
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
@@ -134,21 +66,73 @@ class _ReminderPageState extends State<ReminderPage> {
     }
   }
 
+  Future<void> _scheduleAndSaveReminder() async {
+    // Validate required fields
+    if (_startDate == null ||
+        _selectedFrequency == null ||
+        _selectedTime == null ||
+        _titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
+      return;
+    }
+
+    try {
+      // First create and save the reminder to database
+      final reminder = Reminder(
+        name: _titleController.text,
+        frequency: _selectedFrequency!,
+        startDate: _startDate!,
+        notes: _notesController.text,
+        scheduledTime: _selectedTime!,
+        sound: _selectedSound ?? 'Default',
+      );
+
+      // Save to database
+      await DatabaseHelper.instance.insertReminder(reminder);
+
+      // Schedule the notification
+      final success = await NotificationService.scheduleReminder(
+        context: context,
+        title: _titleController.text,
+        notes: _notesController.text,
+        startDate: _startDate!,
+        selectedTime: _selectedTime!,
+        frequency: _selectedFrequency!,
+        sound: _selectedSound ?? 'Default',
+      );
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reminder scheduled and saved successfully'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      print('Error scheduling and saving reminder: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to schedule reminder. Please try again.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Get screen size
     final size = MediaQuery.of(context).size;
     final fontScale = size.width < 360 ? 0.8 : size.width / 375.0;
     final isSmallScreen = size.height < 600;
-
-    // Colors
-
-    final grey = const Color(0xFFF5F5F5);
     final darkPurple = Theme.of(context).textTheme.titleLarge?.color;
-
-    // Padding
-    final horizontalPadding = size.width * 0.05; // 5% of screen width
-    final verticalSpacing = size.height * 0.02; // 2% of screen height
+    final horizontalPadding = size.width * 0.05;
+    final verticalSpacing = size.height * 0.02;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -222,7 +206,7 @@ class _ReminderPageState extends State<ReminderPage> {
                         textStyle: TextStyle(
                           fontSize: 16 * fontScale,
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).textTheme.titleLarge?.color,
+                          color: darkPurple,
                         ),
                       ),
                     ),
@@ -265,15 +249,13 @@ class _ReminderPageState extends State<ReminderPage> {
                       ),
                       hint: Text(
                         'Select frequency',
-                        style: TextStyle(
-                            color:
-                               Colors.grey[600]),
+                        style: TextStyle(color: Colors.grey[600]),
                       ),
                       value: _selectedFrequency,
                       items: _frequencyOptions.map((freq) {
                         return DropdownMenuItem(
                           value: freq,
-                          child: Text(freq, style: TextStyle(color: Colors.grey[600],),),
+                          child: Text(freq, style: TextStyle(color: Colors.grey[600])),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -305,15 +287,13 @@ class _ReminderPageState extends State<ReminderPage> {
                       ),
                       hint: Text(
                         'Select Sound',
-                        style: TextStyle(
-                            color:
-                                Colors.grey[600]),
+                        style: TextStyle(color: Colors.grey[600]),
                       ),
                       value: _selectedSound,
                       items: _soundOptions.map((sound) {
                         return DropdownMenuItem(
                           value: sound,
-                          child: Text(sound, style: TextStyle(color: Colors.grey[600]),),
+                          child: Text(sound, style: TextStyle(color: Colors.grey[600])),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -342,54 +322,26 @@ class _ReminderPageState extends State<ReminderPage> {
                   ),
                 ],
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _saveReminder,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.upeiRed,
-                        padding: EdgeInsets.symmetric(
-                          vertical: isSmallScreen ? 12 : 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: Text(
-                        'Create Reminder',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14 * fontScale,
-                        ),
-                      ),
-                    ),
+              child: ElevatedButton(
+                onPressed: _scheduleAndSaveReminder,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.upeiRed,
+                  padding: EdgeInsets.symmetric(
+                    vertical: isSmallScreen ? 12 : 16,
                   ),
-                  SizedBox(width: horizontalPadding * 0.5),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _saveToList,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[300],
-                        padding: EdgeInsets.symmetric(
-                          vertical: isSmallScreen ? 12 : 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: Text(
-                        'Save to list',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14 * fontScale,
-                        ),
-                      ),
-                    ),
+                  minimumSize: const Size(double.infinity, 0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                ],
+                ),
+                child: Text(
+                  'Schedule Reminder',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16 * fontScale,
+                  ),
+                ),
               ),
             ),
           ],

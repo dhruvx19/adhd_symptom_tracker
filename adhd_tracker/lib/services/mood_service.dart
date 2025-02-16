@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'package:ADHD_Tracker/models/representation/mood_model.dart';
+import 'package:adhd_tracker/models/representation/mood_model.dart';
 
 class MoodService {
     final FlutterSecureStorage _storage = FlutterSecureStorage();

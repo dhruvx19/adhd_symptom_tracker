@@ -1,14 +1,26 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:adhd_tracker/helpers/theme.dart';
+import 'package:adhd_tracker/ui/auth/login.dart';
+import 'package:adhd_tracker/ui/auth/signin.dart';
+import 'package:http/http.dart' as http;
+
+import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:ADHD_Tracker/providers.dart/profile_provider.dart';
-import 'package:ADHD_Tracker/providers.dart/profile_services.dart';
-import 'package:ADHD_Tracker/ui/auth/login.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/providers.dart/profile_provider.dart';
+
+import 'package:adhd_tracker/utils/color.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileCreationPage extends StatefulWidget {
   const ProfileCreationPage({Key? key}) : super(key: key);
@@ -18,9 +30,9 @@ class ProfileCreationPage extends StatefulWidget {
 }
 
 class _ProfileCreationPageState extends State<ProfileCreationPage> {
-  
-  final Color darkPurple = const Color(0xFF2D2642);
-
+  final String defaultProfilePicUrl =
+      'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+  bool hasSelectedOption = false;
   // Predefined lists remain the same
   final List<String> _predefinedSymptoms = [
     'Careless mistakes',
@@ -53,12 +65,19 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
 
   // State variables
   int _currentStep = 0;
+  String? _defaultImageBase64;
+  bool _isSkipped = false;
   bool _isLoading = false;
   File? _profileImage;
   String? _base64Image;
+  OverlayEntry? _tooltipOverlay;
+  bool _hasShownTooltip = false;
   final List<String> _currentMedications = [];
   final List<String> _selectedSymptoms = [];
   final List<String> _selectedStrategies = [];
+  bool _hasShownSymptomsTooltip = false;
+  OverlayEntry? _symptomsTooltipOverlay;
+  bool _isCheckingProfile = true;
 
   // Controllers
   final TextEditingController _medicationController = TextEditingController();
@@ -66,11 +85,252 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
       TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _loadDefaultImage();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = Provider.of<ProfileProvider>(context, listen: false);
+      await provider.init();
+      _checkProfileStatus();
+    });
+  }
+
+  @override
   void dispose() {
+    _removeTooltip();
+    _removeSymptomsTooltip();
     _medicationController.dispose();
     _customSymptomController.dispose();
     super.dispose();
   }
+
+  void _removeSymptomsTooltip() {
+    _symptomsTooltipOverlay?.remove();
+    _symptomsTooltipOverlay = null;
+  }
+
+  void _showSymptomsTooltip(BuildContext context, GlobalKey key) {
+    if (_hasShownSymptomsTooltip) return;
+
+    // Remove existing tooltip if any
+    _removeSymptomsTooltip();
+
+    // Get the position of the + button
+    final RenderBox? renderBox =
+        key.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final position = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+
+    // Calculate screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Calculate tooltip position
+    final tooltipWidth = 180.0;
+    final tooltipHeight = 60.0;
+
+    // Center the tooltip above the button
+    double leftPosition = position.dx + (size.width / 2) - (tooltipWidth / 2);
+
+    // Ensure tooltip doesn't go off screen
+    leftPosition = leftPosition.clamp(16.0, screenWidth - tooltipWidth - 16.0);
+
+    _symptomsTooltipOverlay = OverlayEntry(
+      builder: (context) => Positioned(
+        left: leftPosition,
+        top: position.dy - tooltipHeight - 8,
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: tooltipWidth,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Click + to add symptom',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              CustomPaint(
+                size: const Size(16, 8),
+                painter: TooltipArrowPainter(Colors.black.withOpacity(0.8)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_symptomsTooltipOverlay!);
+  }
+
+  void _showTooltip(BuildContext context, GlobalKey key) {
+    if (_hasShownTooltip) return;
+
+    // Remove existing tooltip if any
+    _removeTooltip();
+
+    // Get the position of the + button
+    final RenderBox? renderBox =
+        key.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final position = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+
+    // Calculate screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Calculate tooltip position
+    final tooltipWidth = 180.0; // Approximate tooltip width
+    final tooltipHeight = 60.0; // Approximate tooltip height including arrow
+
+    // Center the tooltip above the button
+    double leftPosition = position.dx + (size.width / 2) - (tooltipWidth / 2);
+
+    // Ensure tooltip doesn't go off screen
+    leftPosition = leftPosition.clamp(16.0, screenWidth - tooltipWidth - 16.0);
+
+    _tooltipOverlay = OverlayEntry(
+      builder: (context) => Positioned(
+        left: leftPosition,
+        // Position tooltip above the button with some padding
+        top: position.dy - tooltipHeight - 8,
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: tooltipWidth,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Click + to add medication',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              // Triangle pointer
+              CustomPaint(
+                size: const Size(16, 8),
+                painter: TooltipArrowPainter(Colors.black.withOpacity(0.8)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_tooltipOverlay!);
+  }
+
+  void _removeTooltip() {
+    _tooltipOverlay?.remove();
+    _tooltipOverlay = null;
+  }
+
+  Future<void> _loadDefaultImage() async {
+    try {
+      final ByteData bytes = await rootBundle.load('assets/images/default.png');
+      final Uint8List list = bytes.buffer.asUint8List();
+      _defaultImageBase64 = base64Encode(list);
+    } catch (e) {
+      print('Error loading default image: $e');
+      _showError('Error loading default profile picture');
+    }
+  }
+
+  Future<void> _checkProfileStatus() async {
+    print('Starting profile status check...'); // Debug print
+    setState(() => _isCheckingProfile = true);
+    try {
+      final provider = Provider.of<ProfileProvider>(context, listen: false);
+      final token = await const FlutterSecureStorage().read(key: 'auth_token');
+
+      if (token == null) {
+        print('No auth token found');
+        setState(() => _isCheckingProfile = false);
+        return;
+      }
+      print('Making API request to check profile status...'); //
+      final response = await http.get(
+        Uri.parse(
+            'https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+      print('API Response status code: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body)['data'];
+ print('Profile data received: $data'); 
+        // Don't automatically navigate to login
+        // Only navigate if ALL steps are completed
+        if (data['isProfilePictureSet'] &&
+            data['addMedication'] &&
+            data['addSymptoms'] &&
+            data['addStrategies']) {
+                print('All profile steps completed, navigating to SignUpScreen...'); 
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const SignUpScreen()),
+          );
+          return;
+        }
+
+         setState(() {
+        if (!data['isProfilePictureSet']) {
+          print('Profile picture not set, setting step to 0'); // Debug print
+          _currentStep = 0;
+        } else if (!data['addMedication']) {
+          print('Medications not added, setting step to 1'); // Debug print
+          _currentStep = 1;
+        } else if (!data['addSymptoms']) {
+          print('Symptoms not added, setting step to 2'); // Debug print
+          _currentStep = 2;
+        } else if (!data['addStrategies']) {
+          print('Strategies not added, setting step to 3'); // Debug print
+          _currentStep = 3;
+        }
+
+        if (data['isProfilePictureSet']) {
+          print('Profile picture is set, updating UI state'); // Debug print
+          _isSkipped = true;
+          hasSelectedOption = true;
+          _base64Image = data['profilePicture'] ?? defaultProfilePicUrl;
+        }
+      });
+    }
+  } catch (e) {
+    print('Error checking profile status: $e'); // Debug print
+    _showError('Failed to check profile status');
+  } finally {
+    if (mounted) {
+      setState(() => _isCheckingProfile = false);
+    }
+  }
+}
 
   Future<void> _handleStepSubmission() async {
     if (_isLoading) return;
@@ -81,69 +341,194 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
 
     try {
       switch (_currentStep) {
-        case 0: // Profile Photo
-          if (_profileImage != null) {
-            if (_base64Image == null) {
-              _base64Image = await _convertImageToBase64();
+        case 0:
+          if (_profileImage == null && !_isSkipped) {
+            setState(() => _isLoading = false);
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                title: const Text('Profile Picture'),
+                content: const Text(
+                    'Would you like to add a profile picture or use the default one?'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _pickProfileImage();
+                    },
+                    child: const Text('Add Picture'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        _isSkipped = true;
+                        _profileImage = null;
+                        _base64Image = defaultProfilePicUrl;
+                        hasSelectedOption = true;
+                      });
+                      _handleStepSubmission();
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.upeiRed,
+                    ),
+                    child: const Text('Use Default'),
+                  ),
+                ],
+              ),
+            );
+            return;
+          }
+
+          String imageToUpload =
+              _isSkipped ? defaultProfilePicUrl : _base64Image!;
+          success = await provider.uploadProfilePicture(imageToUpload);
+
+          if (success) {
+            // After successful profile picture upload, check if medications are added
+            final token =
+                await const FlutterSecureStorage().read(key: 'auth_token');
+            final response = await http.get(
+              Uri.parse(
+                  'https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
+              headers: {
+                'Authorization': 'Bearer $token',
+              },
+            );
+
+            if (response.statusCode == 200) {
+              final data = json.decode(response.body)['data'];
+              if (!data['addMedication']) {
+                // If medications are not added, go to medications step
+                setState(() => _currentStep = 1);
+              } else if (!data['addSymptoms']) {
+                // If medications are added but symptoms aren't, go to symptoms step
+                setState(() => _currentStep = 2);
+              } else if (!data['addStrategies']) {
+                // If medications and symptoms are added but strategies aren't, go to strategies step
+                setState(() => _currentStep = 3);
+              }
+            } else {
+              // If API call fails, default to next step
+              setState(() => _currentStep++);
             }
-            if (_base64Image != null) {
-              success = await provider.uploadProfilePicture(_base64Image!);
-            }
-          } else {
-            success = true; // Skip if no image selected
           }
           break;
 
-        case 1: // Medications
-          if (_currentMedications.isNotEmpty) {
-            success = await provider.addMedications(_currentMedications);
-          } else {
-            success = true;
+        // Rest of the cases remain the same
+        case 1:
+          if (_currentMedications.isEmpty) {
+            _showError('Please add at least one medication');
+            setState(() => _isLoading = false);
+            return;
           }
+          success = await provider.addMedications(_currentMedications);
+          if (success) setState(() => _currentStep++);
           break;
 
-        case 2: // Symptoms
-          if (_selectedSymptoms.isNotEmpty) {
-            success = await provider.addSymptoms(_selectedSymptoms);
-          } else {
-            success = true;
+        case 2:
+          if (_selectedSymptoms.isEmpty) {
+            _showError('Please select at least one symptom');
+            setState(() => _isLoading = false);
+            return;
           }
+          success = await provider.addSymptoms(_selectedSymptoms);
+          if (success) setState(() => _currentStep++);
           break;
 
-        case 3: // Strategy
+        case 3:
           if (_selectedStrategies.isEmpty) {
             _showError('Please select a support strategy');
-            success = false;
-          } else {
-            success = await provider
-                .addStrategy(_selectedStrategies.first.toString());
+            setState(() => _isLoading = false);
+            return;
+          }
+          success = await provider.addStrategy(_selectedStrategies.first);
+          if (success && _currentStep == 3) {
+            // Save profile completion status
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('has_completed_profile', true);
 
-            if (success) {
-            // Mark profile creation as complete
-            final storage = FlutterSecureStorage();
-            await storage.delete(key: 'profile_creation_pending');
-            
+            if (!mounted) return;
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const LoginPage()),
             );
-            return;
           }
-        }
+
           break;
       }
 
-      if (success) {
-        setState(() => _currentStep++);
-      } else {
+      if (!success) {
         _showError(provider.error ?? 'Failed to save data');
       }
     } catch (e) {
       _showError('An unexpected error occurred');
       print('Error in step submission: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+// New helper method to validate current step
+  bool _validateCurrentStep() {
+    switch (_currentStep) {
+      case 0:
+        if (!hasSelectedOption) {
+          _showError('Please either add a profile picture or skip');
+          return false;
+        }
+        return true;
+      case 1:
+        if (_currentMedications.isEmpty) {
+          _showError('Please add at least one medication');
+          return false;
+        }
+        return true;
+      case 2:
+        if (_selectedSymptoms.isEmpty) {
+          _showError('Please select at least one symptom');
+          return false;
+        }
+        return true;
+      case 3:
+        if (_selectedStrategies.isEmpty) {
+          _showError('Please select a support strategy');
+          return false;
+        }
+        return true;
+      default:
+        return true;
+    }
+  }
+
+  void _showWarningDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('No Profile Picture'),
+        content: const Text(
+            'Would you like to skip adding a profile picture? A default picture will be used.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() => _isSkipped = true);
+              Navigator.pop(context);
+              _handleStepSubmission();
+            },
+            child: const Text('Skip'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showError(String message) {
@@ -151,73 +536,80 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
       SnackBar(content: Text(message)),
     );
   }
-  
+
+  InputDecoration _getInputDecoration(String hint, {Widget? suffix}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey[600]),
+      fillColor: Colors.grey[200],
+      filled: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      suffixIcon: suffix,
+    );
+  }
+
+  Future<void> _handleSkip() async {
+    // Show confirmation dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Skip Profile Picture'),
+        content: const Text(
+            'Are you sure you want to skip adding a profile picture? A default picture will be used.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _profileImage = null;
+                _base64Image = defaultProfilePicUrl;
+                hasSelectedOption = true;
+                _isSkipped = true;
+              });
+              Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.upeiRed,
+            ),
+            child: const Text('Skip'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _pickProfileImage() async {
     try {
-      final picker = ImagePicker();
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70, // Compress image
+        maxWidth: 800, // Limit width
+        maxHeight: 800, // Limit height
+      );
 
-      // Show platform-specific picker dialog
-      if (Platform.isIOS) {
-        showCupertinoModalPopup(
-          context: context,
-          builder: (BuildContext context) => CupertinoActionSheet(
-            actions: <CupertinoActionSheetAction>[
-              CupertinoActionSheetAction(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  final XFile? image = await picker.pickImage(
-                    source: ImageSource.camera,
-                    maxWidth: 800,
-                    maxHeight: 800,
-                    imageQuality: 85,
-                  );
-                  _handlePickedImage(image);
-                },
-                child: const Text('Take Photo'),
-              ),
-              CupertinoActionSheetAction(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  final XFile? image = await picker.pickImage(
-                    source: ImageSource.gallery,
-                    maxWidth: 800,
-                    maxHeight: 800,
-                    imageQuality: 85,
-                  );
-                  _handlePickedImage(image);
-                },
-                child: const Text('Choose from Library'),
-              ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-          ),
-        );
-      } else {
-        final XFile? pickedFile = await picker.pickImage(
-          source: ImageSource.gallery,
-          maxWidth: 800,
-          maxHeight: 800,
-          imageQuality: 85,
-        );
-        _handlePickedImage(pickedFile);
+      if (image != null) {
+        setState(() {
+          _profileImage = File(image.path);
+          hasSelectedOption = true;
+          _isSkipped = false;
+        });
+
+        // Convert to base64
+        final bytes = await _profileImage!.readAsBytes();
+        _base64Image = base64Encode(bytes);
       }
     } catch (e) {
-      print('Error picking image: $e');
-      _showError('Failed to pick image');
-    }
-  }
-
-  void _handlePickedImage(XFile? pickedFile) {
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-        _base64Image = null;
-      });
-      _convertImageToBase64();
+      _showError('Failed to pick image: ${e.toString()}');
     }
   }
 
@@ -262,7 +654,9 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     setState(() {
       _currentMedications.add(medication);
       _medicationController.clear();
+      _hasShownTooltip = true; // Mark tooltip as shown after first use
     });
+    _removeTooltip(); // Remove the tooltip
   }
 
   void _removeMedication(int index) {
@@ -273,13 +667,40 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final orientation = MediaQuery.of(context).orientation;
-
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final darkPurple = Theme.of(context).textTheme.titleLarge?.color;
     // Calculate responsive values
     final double paddingScale = size.width / 375.0;
     final double fontScale = size.width < 600 ? size.width / 375.0 : 1.5;
+    if (_isCheckingProfile) {
     return Scaffold(
       backgroundColor: Colors.white,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.upeiRed),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Checking Profile Status...',
+              style: TextStyle(
+                fontSize: 16 * fontScale,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       appBar: AppBar(
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         title: Text(
           'Complete Your Profile',
           style: TextStyle(
@@ -288,7 +709,6 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
             fontSize: 20 * fontScale,
           ),
         ),
-        backgroundColor: Colors.white,
       ),
       body: Column(
         children: [
@@ -310,7 +730,9 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
             padding: const EdgeInsets.all(22.0),
             child: _buildNavigationButton(fontScale),
           ),
-          SizedBox(height: 24,)
+          SizedBox(
+            height: 24,
+          )
         ],
       ),
     );
@@ -326,7 +748,9 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: _currentStep == index ? AppTheme.upeiGreen: Colors.grey.shade300,
+            color: _currentStep == index
+                ? AppTheme.upeiGreen
+                : Colors.grey.shade300,
           ),
         );
       }),
@@ -402,47 +826,154 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildProfileImage(),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _pickProfileImage,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.upeiRed,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          _buildProfilePreview(),
+          const SizedBox(height: 32),
+          if (!hasSelectedOption) ...[
+            Text(
+              'Choose an option to continue',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
               ),
             ),
-            child: const Text(
-              'Pick Profile Photo',
-              style: TextStyle(color: Colors.white),
-            ),
+            const SizedBox(height: 20),
+          ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: _pickProfileImage,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.upeiRed,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Add Profile Picture',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(width: 16),
+              TextButton(
+                onPressed: _handleSkip,
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'Skip',
+                  style: TextStyle(
+                    color: AppTheme.upeiRed,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
+          if (hasSelectedOption)
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: Text(
+                _isSkipped
+                    ? 'Using default profile picture'
+                    : 'Profile picture selected',
+                style: TextStyle(
+                  color: Colors.green[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
+  Widget _buildProfilePreview() {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.grey[300]!,
+          width: 2,
+        ),
+      ),
+      child: CircleAvatar(
+        radius: 80,
+        backgroundColor: Colors.grey[200],
+        child: _profileImage != null
+            ? ClipOval(
+                child: Image.file(
+                  _profileImage!,
+                  width: 160,
+                  height: 160,
+                  fit: BoxFit.cover,
+                ),
+              )
+            : const Icon(Icons.person, size: 80, color: Colors.grey),
+      ),
+    );
+  }
+
   Widget _buildCurrentMedicationsStep() {
+    // Create a GlobalKey for the add button
+    final addButtonKey = GlobalKey();
+
+    // Show tooltip when step is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_currentStep == 1 && !_hasShownTooltip) {
+        _showTooltip(context, addButtonKey);
+      }
+    });
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
           TextField(
             controller: _medicationController,
-            onSubmitted: (_) => _addMedication(),
+            onSubmitted: (_) {
+              _addMedication();
+              _removeTooltip();
+              setState(() => _hasShownTooltip = true);
+            },
             decoration: InputDecoration(
               labelText: 'Enter Current Medication',
               suffixIcon: IconButton(
+                key: addButtonKey, // Add the key to the add button
                 icon: const Icon(Icons.add),
-                onPressed: _addMedication,
+                onPressed: () {
+                  _addMedication();
+                  _removeTooltip();
+                  setState(() => _hasShownTooltip = true);
+                },
+              ),
+              filled: true,
+              fillColor: Colors.grey[200],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
             ),
           ),
           const SizedBox(height: 20),
           Expanded(
             child: _currentMedications.isEmpty
-                ? const Center(child: Text('No medications added'))
+                ? Center(
+                    child: Text(
+                      'No medications added yet\nUse the + button to add medications',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 16,
+                      ),
+                    ),
+                  )
                 : ListView.builder(
                     itemCount: _currentMedications.length,
                     itemBuilder: (context, index) {
@@ -462,15 +993,25 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
   }
 
   Widget _buildADHDSymptomsStep() {
+    final addSymptomButtonKey = GlobalKey();
+
+    // Show tooltip when step is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_currentStep == 2 && !_hasShownSymptomsTooltip) {
+        _showSymptomsTooltip(context, addSymptomButtonKey);
+      }
+    });
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
           TextField(
             controller: _customSymptomController,
-            decoration: InputDecoration(
-              labelText: 'Add Custom Symptom',
-              suffixIcon: IconButton(
+            decoration: _getInputDecoration(
+              'Type symptom and tap + to add',
+              suffix: IconButton(
+                key: addSymptomButtonKey, // Add the key to the add button
                 icon: const Icon(Icons.add),
                 onPressed: () {
                   final customSymptom = _customSymptomController.text.trim();
@@ -478,7 +1019,9 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
                     setState(() {
                       _selectedSymptoms.add(customSymptom);
                       _customSymptomController.clear();
+                      _hasShownSymptomsTooltip = true;
                     });
+                    _removeSymptomsTooltip();
                   }
                 },
               ),
@@ -546,4 +1089,28 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
       ),
     );
   }
+}
+
+class TooltipArrowPainter extends CustomPainter {
+  final Color color;
+
+  TooltipArrowPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..lineTo(size.width, 0)
+      ..close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

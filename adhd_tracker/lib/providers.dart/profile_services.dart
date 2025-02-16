@@ -21,74 +21,82 @@ class ProfileService {
   }
 
   Future<bool> uploadProfilePicture(String base64Image) async {
-    try {
-      final token = await _storage.read(key: 'auth_token');
-      final response = await http.post(
-        Uri.parse('$baseUrl/addProfilePicture'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({
-          'profilePicture': base64Image, // Send just the base64 string
-        }),
-      );
+  try {
+    final token = await _storage.read(key: 'auth_token');
+    final response = await http.post(
+      Uri.parse('$baseUrl/addProfilePicture'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: json.encode({
+        'profilePicture': base64Image,
+      }),
+    );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        print('Upload failed with status: ${response.statusCode}');
-        print('Response body: ${response.body}');
-        throw Exception('Failed to upload image');
-      }
-    } catch (e) {
-      print('Error uploading profile picture: $e');
-      rethrow;
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      print('Upload failed with status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      final errorMessage = json.decode(response.body)['message'] ?? 'Failed to upload image';
+      throw Exception(errorMessage);
     }
+  } catch (e) {
+    print('Error uploading profile picture: $e');
+    rethrow;
   }
-
-  Future<bool> addMedications(List<String> medications) async {
-    try {
-      final token = await _storage.read(key: 'auth_token');
-      final response = await http.post(
-        Uri.parse('$baseUrl/addmedication'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({
-          'medication': medications,
-        }),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      print('Error adding medications: $e');
+}
+ Future<bool> addMedications(List<String> medications) async {
+  try {
+    final token = await _storage.read(key: 'auth_token');
+    final response = await http.post(
+      Uri.parse('$baseUrl/addmedication'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: json.encode({
+        'medication': medications,
+      }),
+    );
+    
+    if (response.statusCode != 200) {
+      print('Failed to add medications: ${response.body}');
       return false;
     }
+    return true;
+  } catch (e) {
+    print('Error adding medications: $e');
+    return false;
   }
-
+}
   Future<bool> addSymptoms(List<String> symptoms) async {
-    try {
-      final token = await _storage.read(key: 'auth_token');
-      final response = await http.post(
-        Uri.parse('$baseUrl/addsymptoms'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({
-          'symptoms': symptoms,
-        }),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      print('Error adding symptoms: $e');
+  try {
+    final token = await _storage.read(key: 'auth_token');
+    final response = await http.post(
+      Uri.parse('$baseUrl/addsymptoms'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: json.encode({
+        'symptoms': symptoms,
+      }),
+    );
+    
+    if (response.statusCode != 200) {
+      print('Failed to add symptoms: ${response.body}');
       return false;
     }
+    return true;
+  } catch (e) {
+    print('Error adding symptoms: $e');
+    return false;
   }
+}
 
-  Future<bool> addStrategy(String strategy) async {
+ Future<bool> addStrategy(String strategy) async {
   try {
     final token = await _storage.read(key: 'auth_token');
     final response = await http.post(
@@ -98,10 +106,15 @@ class ProfileService {
         'Authorization': 'Bearer $token',
       },
       body: json.encode({
-        'strategies': [strategy], 
+        'strategies': [strategy],
       }),
     );
-    return response.statusCode == 200;
+    
+    if (response.statusCode != 200) {
+      print('Failed to add strategy: ${response.body}');
+      return false;
+    }
+    return true;
   } catch (e) {
     print('Error adding strategy: $e');
     return false;

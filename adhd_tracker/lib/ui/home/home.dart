@@ -1,18 +1,18 @@
-import 'package:ADHD_Tracker/helpers/theme.dart';
-import 'package:ADHD_Tracker/ui/home/record/symptom.dart';
-import 'package:ADHD_Tracker/ui/representation/mood/mood_analytics.dart';
-import 'package:ADHD_Tracker/ui/settings/resources.dart';
+import 'package:adhd_tracker/helpers/theme.dart';
+import 'package:adhd_tracker/ui/home/record/symptom.dart';
+import 'package:adhd_tracker/ui/representation/mood/mood_analytics.dart';
+import 'package:adhd_tracker/ui/settings/resources.dart';
 import 'package:flutter/material.dart';
-import 'package:ADHD_Tracker/helpers/curved_navbar.dart';
-import 'package:ADHD_Tracker/providers.dart/home_provider.dart';
-import 'package:ADHD_Tracker/ui/home/goals/goals.dart';
-import 'package:ADHD_Tracker/ui/home/reminder/show_reminder.dart';
-import 'package:ADHD_Tracker/ui/settings/settings.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/helpers/curved_navbar.dart';
+import 'package:adhd_tracker/providers.dart/home_provider.dart';
+import 'package:adhd_tracker/ui/home/goals/goals.dart';
+import 'package:adhd_tracker/ui/home/reminder/show_reminder.dart';
+import 'package:adhd_tracker/ui/settings/settings.dart';
+import 'package:adhd_tracker/utils/color.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import 'package:ADHD_Tracker/providers.dart/login_provider.dart';
+import 'package:adhd_tracker/providers.dart/login_provider.dart';
 import 'dart:convert';
 
 class HomePage extends StatefulWidget {
@@ -37,6 +37,51 @@ class _HomePageState extends State<HomePage> {
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
   List<String> _allPages = [];
+  void _showDateSelectionDialog(BuildContext context, DateTime selectedDay) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add New Item'),
+          content: Text('What would you like to add for ${selectedDay.day}/${selectedDay.month}/${selectedDay.year}?'),
+          actions: <Widget>[
+            TextButton(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.flag),
+                  SizedBox(width: 8),
+                  Text('Add Goal'),
+                ],
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => GoalsPage()),
+                );
+              },
+            ),
+            TextButton(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.notifications),
+                  SizedBox(width: 8),
+                  Text('Set Reminder'),
+                ],
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => ReminderListPage()),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
   void _createOverlay() {
     if (_overlayEntry == null) {
       _overlayEntry = OverlayEntry(
@@ -459,6 +504,7 @@ class _HomePageState extends State<HomePage> {
                                       listen: false);
                               healthProvider.fetchSymptoms(selectedDay);
                               healthProvider.fetchMedications(selectedDay);
+                                _showDateSelectionDialog(context, selectedDay);
                             },
                             onPageChanged: (focusedDay) {
                               _focusedDay = focusedDay;

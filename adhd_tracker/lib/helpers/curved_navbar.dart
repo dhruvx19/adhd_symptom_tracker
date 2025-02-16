@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:ADHD_Tracker/ui/representation/mood/mood_chart.dart';
-import 'package:ADHD_Tracker/utils/color.dart';
+import 'package:adhd_tracker/ui/representation/mood/mood_chart.dart';
+import 'package:adhd_tracker/utils/color.dart';
 import 'package:provider/provider.dart';
-import 'package:ADHD_Tracker/ui/home/record/medication.dart';
-import 'package:ADHD_Tracker/ui/home/record/symptom.dart';
+import 'package:adhd_tracker/ui/home/record/medication.dart';
+import 'package:adhd_tracker/ui/home/record/symptom.dart';
 
 class CustomCurvedNavigationBar extends StatelessWidget {
   const CustomCurvedNavigationBar({
