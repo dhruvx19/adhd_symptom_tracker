@@ -46,6 +46,7 @@ flutter:
   assets:
     - assets/images/logo.png
     - assets/images/default.png
+    - assets/images/demo1.png
 
   fonts:
     - family: Nordique
