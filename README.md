@@ -1,4 +1,3 @@
-# ![ADHD Tracker](https://your-image-link.com/banner.png)
 
 ![Flutter Version](https://img.shields.io/badge/Flutter-3.27.0-blue)
 ![Dart Version](https://img.shields.io/badge/Dart-3.3.0-blue)
@@ -11,7 +10,7 @@
 
 # ADHD Tracker App
 
-[![Demo Link](https://drive.google.com/file/d/138Z2dB1OJSvv7c9HbgPqr9O3FJEXew9o/view?usp=drive_link)
+[Demo Link](https://drive.google.com/file/d/138Z2dB1OJSvv7c9HbgPqr9O3FJEXew9o/view?usp=drive_link)
 
 A comprehensive ADHD Tracker designed to help users manage their daily routines effectively. This app offers mood, symptom, and medication tracking, along with useful resources, reminders, and insightful graph analytics.
 
