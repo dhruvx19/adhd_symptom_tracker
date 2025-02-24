@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:adhd_tracker/models/database_helper.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -30,7 +31,7 @@ class LoginProvider with ChangeNotifier {
     try {
       final token = await _secureStorage.read(key: _tokenKey);
       debugPrint('Retrieved token: $token');
-      
+
       if (token != null) {
         // Validate token on server
         final isValid = await _validateToken(token);
@@ -53,6 +54,7 @@ class LoginProvider with ChangeNotifier {
       // Handle error but don't clear token on network errors
       if (!e.toString().contains('SocketException')) {
         await _secureStorage.delete(key: _tokenKey);
+         await DatabaseHelper.instance.clearCurrentUser();
         _token = null;
         _isLoggedIn = false;
       }
@@ -63,7 +65,8 @@ class LoginProvider with ChangeNotifier {
   Future<bool> _validateToken(String token) async {
     try {
       final response = await http.get(
-        Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
+        Uri.parse(
+            'https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -75,7 +78,6 @@ class LoginProvider with ChangeNotifier {
       return true;
     }
   }
-
 
   Future<void> _handleSuccessfulLogin(Map<String, dynamic> responseData) async {
     final token = responseData['data'] as String;
@@ -90,6 +92,7 @@ class LoginProvider with ChangeNotifier {
     _token = token;
     _isLoggedIn = true;
     _clearError();
+    DatabaseHelper.instance.setCurrentUser(token);
 
     // Schedule daily notification when user logs in
     await NotificationService.scheduleDailyReminder();
@@ -146,7 +149,7 @@ class LoginProvider with ChangeNotifier {
   Future<void> logout() async {
     try {
       _setLoading(true);
-
+      await DatabaseHelper.instance.clearCurrentUser();
       // Clear stored data
       await _secureStorage.delete(key: _tokenKey);
 

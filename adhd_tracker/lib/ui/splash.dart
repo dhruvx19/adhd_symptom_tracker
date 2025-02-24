@@ -62,51 +62,91 @@ class _SplashScreenState extends State<SplashScreen>
     _initializeApp();
   }
 
-  Future<void> _initializeApp() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final loginProvider = Provider.of<LoginProvider>(context, listen: false);
-    
-    if (!mounted) return;
-    
-    setState(() {
-      isFirstTime = prefs.getBool('is_first_time') ?? true;
-    });
-
-    // First time users should stay on splash screen
-    if (isFirstTime) {
-      return;
-    }
-
-    // Initialize login provider and check token
-    await loginProvider.initialize();
-    
-    if (!mounted) return;
-
-    // Simple logic: If we have a token, go to mood page
-    if (loginProvider.isLoggedIn) {
-      await Future.delayed(const Duration(milliseconds: 1500)); // Keep splash animation
-      if (!mounted) return;
-      _navigateToPage(MoodPage()); // Directly go to mood page if logged in
-    } else {
-      await Future.delayed(const Duration(milliseconds: 1500));
-      if (!mounted) return;
-      _navigateToPage(const LoginPage());
-    }
-  } catch (e) {
-    debugPrint('Error in _initializeApp: $e');
-    if (mounted) {
-      // Only navigate to login if there's a real authentication issue
+ Future<void> _initializeApp() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
       final storage = const FlutterSecureStorage();
-      final token = await storage.read(key: 'auth_token');
-      if (token != null) {
-        _navigateToPage(MoodPage()); // If we have a token, still try to go to mood
+      
+      if (!mounted) return;
+      
+      setState(() {
+        isFirstTime = prefs.getBool('is_first_time') ?? true;
+      });
+
+      // First time users should stay on splash screen
+      if (isFirstTime) {
+        return;
+      }
+
+      // Check if profile is completed
+      final bool isProfileCompleted = prefs.getBool('has_completed_profile') ?? false;
+      final String? authToken = await storage.read(key: 'auth_token');
+
+      if (!mounted) return;
+
+      if (isProfileCompleted) {
+        // If profile is completed, only check auth status
+        if (authToken != null) {
+          await Future.delayed(const Duration(milliseconds: 1500));
+          if (!mounted) return;
+          _navigateToPage(MoodPage());
+        } else {
+          await Future.delayed(const Duration(milliseconds: 1500));
+          if (!mounted) return;
+          _navigateToPage(const LoginPage());
+        }
+        return;
+      }
+
+      // Initialize login provider and check token
+      await loginProvider.initialize();
+      
+      if (!mounted) return;
+
+      // If we have a token, check profile status
+      if (authToken != null) {
+        final response = await http.get(
+          Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body)['data'];
+          
+          // If all steps are completed, set profile completion flag
+          if (data['isProfilePictureSet'] && 
+              data['addMedication'] && 
+              data['addSymptoms'] && 
+              data['addStrategies']) {
+            await prefs.setBool('has_completed_profile', true);
+            if (!mounted) return;
+            _navigateToPage(MoodPage());
+          } else {
+            await Future.delayed(const Duration(milliseconds: 1500));
+            if (!mounted) return;
+            _navigateToPage(const ProfileCreationPage());
+          }
+        } else {
+          await Future.delayed(const Duration(milliseconds: 1500));
+          if (!mounted) return;
+          _navigateToPage(const LoginPage());
+        }
       } else {
+        await Future.delayed(const Duration(milliseconds: 1500));
+        if (!mounted) return;
+        _navigateToPage(const LoginPage());
+      }
+    } catch (e) {
+      debugPrint('Error in _initializeApp: $e');
+      if (mounted) {
         _navigateToPage(const LoginPage());
       }
     }
   }
-}
+
 // Add this new method to check profile completion
 Future<bool> _checkProfileCompletion() async {
   try {

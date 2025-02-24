@@ -20,6 +20,7 @@ class _NewGoalPageState extends State<NewGoalPage> {
   String? _selectedFrequency;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _notesController = TextEditingController();
+   final TextEditingController _nameController = TextEditingController();
   Timer? _debounce;
 
   final _frequencyOptions = [
@@ -67,16 +68,16 @@ class _NewGoalPageState extends State<NewGoalPage> {
     super.dispose();
   }
 
-  void _saveGoal() async {
-    if (_startDate == null || selectedFrequency == null) {
+   void _saveGoal() async {
+    if (_startDate == null || selectedFrequency == null || _nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill all required fields')),
+        const SnackBar(content: Text('Please fill all required fields')),
       );
       return;
     }
 
     final goal = Goal(
-      name: 'Your Goal Name', // Replace with actual input
+      name: _nameController.text.trim(),
       frequency: selectedFrequency!,
       startDate: _startDate!,
       notes: _notesController.text,
@@ -174,6 +175,7 @@ class _NewGoalPageState extends State<NewGoalPage> {
                     ),
                     SizedBox(height: verticalSpacing),
                     TextField(
+                        controller: _nameController,
                       decoration: InputDecoration(
                         hintText: 'E.g. Read 20 pages',
                         hintStyle: TextStyle(color: Colors.grey[600]),

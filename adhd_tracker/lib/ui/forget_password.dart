@@ -15,7 +15,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final Color darkPurple = const Color(0xFF2D2642);
+
 
   final emailController = TextEditingController();
   final otpController = TextEditingController();
@@ -90,13 +90,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final fontScale = size.width / 375.0;
+     final darkPurple = Theme.of(context).textTheme.titleLarge?.color;
 
     return ChangeNotifierProvider(
       create: (_) => ForgotPasswordProvider(),
       child: Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         appBar: AppBar(
-          backgroundColor: AppTheme.background,
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           elevation: 0,
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: AppTheme.upeiGreen),
@@ -138,9 +139,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             )),
                         const SizedBox(height: 4),
                         TextField(
+                           style: TextStyle(color: Colors.black),
                           controller: emailController,
                           decoration: InputDecoration(
                             hintText: 'Enter email',
+                             hintStyle: TextStyle(color: Colors.grey[600]),
                             fillColor: Colors.grey[200],
                             filled: true,
                             border: OutlineInputBorder(
@@ -162,6 +165,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               )),
                           const SizedBox(height: 4),
                           TextField(
+                             style: TextStyle(color: Colors.black),
                             controller: otpController,
                             keyboardType: TextInputType.number,
                             inputFormatters: [
@@ -169,6 +173,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               LengthLimitingTextInputFormatter(6),
                             ],
                             decoration: InputDecoration(
+                              hintStyle: TextStyle(color: Colors.grey[600]),
                               hintText: 'Enter 6-digit OTP',
                               fillColor: Colors.grey[200],
                               filled: true,
@@ -183,6 +188,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         if (provider.isOtpVerified) ...[
                           const SizedBox(height: 16),
                           Text('New Password',
+                          
                               style: GoogleFonts.lato(
                                 textStyle: TextStyle(
                                   fontSize: 16 * fontScale,
@@ -192,10 +198,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               )),
                           const SizedBox(height: 4),
                           TextField(
+                             style: TextStyle(color: Colors.black),
                             controller: newPasswordController,
                             obscureText: !isNewPasswordVisible,
                             decoration: InputDecoration(
                               hintText: 'Enter new password',
+                              hintStyle: TextStyle(color: Colors.grey[600]),
                               fillColor: Colors.grey[200],
                               filled: true,
                               border: OutlineInputBorder(

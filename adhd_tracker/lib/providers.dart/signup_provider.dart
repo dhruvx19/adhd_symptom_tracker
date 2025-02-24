@@ -78,6 +78,7 @@ class SignUpProvider with ChangeNotifier {
         final responseBody = json.decode(response.body);
         final token = responseBody['data']['token'];
         await _storage.write(key: 'auth_token', value: token);
+        debugPrint('sign up ka hai token: ' + token);
         
         return await sendOtp();
       } else {

@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:adhd_tracker/helpers/theme.dart';
 import 'package:adhd_tracker/ui/auth/login.dart';
 import 'package:adhd_tracker/ui/auth/signin.dart';
+import 'package:adhd_tracker/ui/home/home.dart';
+import 'package:adhd_tracker/ui/home/mood.dart';
 import 'package:http/http.dart' as http;
 
 import 'dart:typed_data';
@@ -110,139 +112,74 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     _symptomsTooltipOverlay = null;
   }
 
-  void _showSymptomsTooltip(BuildContext context, GlobalKey key) {
-    if (_hasShownSymptomsTooltip) return;
-
-    // Remove existing tooltip if any
-    _removeSymptomsTooltip();
-
-    // Get the position of the + button
-    final RenderBox? renderBox =
-        key.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-
-    final position = renderBox.localToGlobal(Offset.zero);
-    final size = renderBox.size;
-
-    // Calculate screen width
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    // Calculate tooltip position
-    final tooltipWidth = 180.0;
-    final tooltipHeight = 60.0;
-
-    // Center the tooltip above the button
-    double leftPosition = position.dx + (size.width / 2) - (tooltipWidth / 2);
-
-    // Ensure tooltip doesn't go off screen
-    leftPosition = leftPosition.clamp(16.0, screenWidth - tooltipWidth - 16.0);
-
-    _symptomsTooltipOverlay = OverlayEntry(
-      builder: (context) => Positioned(
-        left: leftPosition,
-        top: position.dy - tooltipHeight - 8,
-        child: Material(
-          color: Colors.transparent,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: tooltipWidth,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Click + to add symptom',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              CustomPaint(
-                size: const Size(16, 8),
-                painter: TooltipArrowPainter(Colors.black.withOpacity(0.8)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    Overlay.of(context).insert(_symptomsTooltipOverlay!);
-  }
-
+  
   void _showTooltip(BuildContext context, GlobalKey key) {
-    if (_hasShownTooltip) return;
+  if (_hasShownTooltip) return;
 
-    // Remove existing tooltip if any
-    _removeTooltip();
+  // Remove existing tooltip if any
+  _removeTooltip();
 
-    // Get the position of the + button
-    final RenderBox? renderBox =
-        key.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
+  // Get the position of the + button
+  final RenderBox? renderBox = key.currentContext?.findRenderObject() as RenderBox?;
+  if (renderBox == null) return;
 
-    final position = renderBox.localToGlobal(Offset.zero);
-    final size = renderBox.size;
+  final position = renderBox.localToGlobal(Offset.zero);
+  final size = renderBox.size;
 
-    // Calculate screen width
-    final screenWidth = MediaQuery.of(context).size.width;
+  // Calculate screen dimensions
+  final screenWidth = MediaQuery.of(context).size.width;
 
-    // Calculate tooltip position
-    final tooltipWidth = 180.0; // Approximate tooltip width
-    final tooltipHeight = 60.0; // Approximate tooltip height including arrow
+  // Calculate tooltip dimensions
+  final tooltipWidth = 180.0;
+  final tooltipHeight = 60.0;
 
-    // Center the tooltip above the button
-    double leftPosition = position.dx + (size.width / 2) - (tooltipWidth / 2);
+  // Center the tooltip below the button
+  double leftPosition = position.dx + (size.width / 2) - (tooltipWidth / 2);
+  
+  // Ensure tooltip doesn't go off screen
+  leftPosition = leftPosition.clamp(16.0, screenWidth - tooltipWidth - 16.0);
 
-    // Ensure tooltip doesn't go off screen
-    leftPosition = leftPosition.clamp(16.0, screenWidth - tooltipWidth - 16.0);
-
-    _tooltipOverlay = OverlayEntry(
-      builder: (context) => Positioned(
-        left: leftPosition,
-        // Position tooltip above the button with some padding
-        top: position.dy - tooltipHeight - 8,
-        child: Material(
-          color: Colors.transparent,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: tooltipWidth,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Click + to add medication',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+  _tooltipOverlay = OverlayEntry(
+    builder: (context) => Positioned(
+      left: leftPosition,
+      // Position tooltip below the button with some padding
+      top: position.dy + size.height + 8,
+      child: Material(
+        color: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Arrow pointing up (now at the top)
+            CustomPaint(
+              size: const Size(16, 8),
+              painter: TooltipArrowPainter(Colors.black.withOpacity(0.8), isPointingUp: true),
+            ),
+            // Tooltip content
+            Container(
+              width: tooltipWidth,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(8),
               ),
-              // Triangle pointer
-              CustomPaint(
-                size: const Size(16, 8),
-                painter: TooltipArrowPainter(Colors.black.withOpacity(0.8)),
+              child: const Text(
+                'Click + to add medication',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
+    ),
+  );
 
-    Overlay.of(context).insert(_tooltipOverlay!);
-  }
+  Overlay.of(context).insert(_tooltipOverlay!);
+}
+
 
   void _removeTooltip() {
     _tooltipOverlay?.remove();
@@ -294,7 +231,7 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
           if (!mounted) return;
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const SignUpScreen()),
+            MaterialPageRoute(builder: (context) =>  MoodPage()),
           );
           return;
         }
@@ -996,11 +933,7 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     final addSymptomButtonKey = GlobalKey();
 
     // Show tooltip when step is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_currentStep == 2 && !_hasShownSymptomsTooltip) {
-        _showSymptomsTooltip(context, addSymptomButtonKey);
-      }
-    });
+    
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -1093,8 +1026,9 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
 
 class TooltipArrowPainter extends CustomPainter {
   final Color color;
+  final bool isPointingUp;
 
-  TooltipArrowPainter(this.color);
+  TooltipArrowPainter(this.color, {this.isPointingUp = false});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1102,11 +1036,20 @@ class TooltipArrowPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..lineTo(size.width, 0)
-      ..close();
+    final path = Path();
+    if (isPointingUp) {
+      // Draw arrow pointing up
+      path..moveTo(0, size.height)
+        ..lineTo(size.width / 2, 0)
+        ..lineTo(size.width, size.height)
+        ..close();
+    } else {
+      // Draw arrow pointing down (original behavior)
+      path..moveTo(0, 0)
+        ..lineTo(size.width / 2, size.height)
+        ..lineTo(size.width, 0)
+        ..close();
+    }
 
     canvas.drawPath(path, paint);
   }
