@@ -24,13 +24,13 @@ class _ReminderListPageState extends State<ReminderListPage> {
 
   void _refreshReminders() {
     setState(() {
-      _remindersFuture = DatabaseHelper.instance.getAllReminder();
+      _remindersFuture = ReminderDatabaseHelper.instance.getAllReminder();
     });
   }
 
   Future<void> _toggleReminderCompletion(Reminder reminder) async {
     try {
-      await DatabaseHelper.instance
+      await ReminderDatabaseHelper.instance
           .updateReminderCompletion(reminder.id!, !reminder.isCompleted);
       _refreshReminders();
     } catch (e) {
@@ -67,7 +67,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
 
     if (confirmed == true) {
       try {
-        await DatabaseHelper.instance.deleteReminder(reminder.id!);
+        await ReminderDatabaseHelper.instance.deleteReminder(reminder.id!);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

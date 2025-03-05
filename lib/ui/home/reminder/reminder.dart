@@ -90,7 +90,7 @@ class _ReminderPageState extends State<ReminderPage> {
       );
 
       // Save to database
-      await DatabaseHelper.instance.insertReminder(reminder);
+      await ReminderDatabaseHelper.instance.insertReminder(reminder);
 
       // Schedule the notification
       final success = await NotificationService.scheduleReminder(

@@ -1,14 +1,13 @@
-// models/database_helper.dart
 import 'package:adhd_tracker/models/reminder_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
+
+class ReminderDatabaseHelper {
+  static final ReminderDatabaseHelper instance = ReminderDatabaseHelper._init();
   static Database? _database;
 
-
-static const String tableReminders = 'reminders';
-  DatabaseHelper._init();
+  static const String tableReminders = 'reminders';
+  ReminderDatabaseHelper._init();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -70,5 +69,19 @@ static const String tableReminders = 'reminders';
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // New method to clear the entire database when logging out
+  Future<void> clearDatabase() async {
+    final db = await instance.database;
+    
+    // Delete all rows from the reminders table
+    await db.delete(tableReminders);
+  }
+
+  // Optional: Close the database connection
+  Future<void> close() async {
+    final db = await instance.database;
+    await db.close();
   }
 }

@@ -112,74 +112,75 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     _symptomsTooltipOverlay = null;
   }
 
-  
   void _showTooltip(BuildContext context, GlobalKey key) {
-  if (_hasShownTooltip) return;
+    if (_hasShownTooltip) return;
 
-  // Remove existing tooltip if any
-  _removeTooltip();
+    // Remove existing tooltip if any
+    _removeTooltip();
 
-  // Get the position of the + button
-  final RenderBox? renderBox = key.currentContext?.findRenderObject() as RenderBox?;
-  if (renderBox == null) return;
+    // Get the position of the + button
+    final RenderBox? renderBox =
+        key.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
 
-  final position = renderBox.localToGlobal(Offset.zero);
-  final size = renderBox.size;
+    final position = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
 
-  // Calculate screen dimensions
-  final screenWidth = MediaQuery.of(context).size.width;
+    // Calculate screen dimensions
+    final screenWidth = MediaQuery.of(context).size.width;
 
-  // Calculate tooltip dimensions
-  final tooltipWidth = 180.0;
-  final tooltipHeight = 60.0;
+    // Calculate tooltip dimensions
+    final tooltipWidth = 180.0;
+    final tooltipHeight = 60.0;
 
-  // Center the tooltip below the button
-  double leftPosition = position.dx + (size.width / 2) - (tooltipWidth / 2);
-  
-  // Ensure tooltip doesn't go off screen
-  leftPosition = leftPosition.clamp(16.0, screenWidth - tooltipWidth - 16.0);
+    // Center the tooltip below the button
+    double leftPosition = position.dx + (size.width / 2) - (tooltipWidth / 2);
 
-  _tooltipOverlay = OverlayEntry(
-    builder: (context) => Positioned(
-      left: leftPosition,
-      // Position tooltip below the button with some padding
-      top: position.dy + size.height + 8,
-      child: Material(
-        color: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Arrow pointing up (now at the top)
-            CustomPaint(
-              size: const Size(16, 8),
-              painter: TooltipArrowPainter(Colors.black.withOpacity(0.8), isPointingUp: true),
-            ),
-            // Tooltip content
-            Container(
-              width: tooltipWidth,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(8),
+    // Ensure tooltip doesn't go off screen
+    leftPosition = leftPosition.clamp(16.0, screenWidth - tooltipWidth - 16.0);
+
+    _tooltipOverlay = OverlayEntry(
+      builder: (context) => Positioned(
+        left: leftPosition,
+        // Position tooltip below the button with some padding
+        top: position.dy + size.height + 8,
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Arrow pointing up (now at the top)
+              CustomPaint(
+                size: const Size(16, 8),
+                painter: TooltipArrowPainter(Colors.black.withOpacity(0.8),
+                    isPointingUp: true),
               ),
-              child: const Text(
-                'Click + to add medication',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
+              // Tooltip content
+              Container(
+                width: tooltipWidth,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                textAlign: TextAlign.center,
+                child: const Text(
+                  'Click + to add medication',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
 
-  Overlay.of(context).insert(_tooltipOverlay!);
-}
-
+    Overlay.of(context).insert(_tooltipOverlay!);
+  }
 
   void _removeTooltip() {
     _tooltipOverlay?.remove();
@@ -220,54 +221,54 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
       print('API Response status code: ${response.statusCode}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body)['data'];
- print('Profile data received: $data'); 
+        print('Profile data received: $data');
         // Don't automatically navigate to login
         // Only navigate if ALL steps are completed
         if (data['isProfilePictureSet'] &&
             data['addMedication'] &&
             data['addSymptoms'] &&
             data['addStrategies']) {
-                print('All profile steps completed, navigating to SignUpScreen...'); 
+          print('All profile steps completed, navigating to SignUpScreen...');
           if (!mounted) return;
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) =>  MoodPage()),
+            MaterialPageRoute(builder: (context) => MoodPage()),
           );
           return;
         }
 
-         setState(() {
-        if (!data['isProfilePictureSet']) {
-          print('Profile picture not set, setting step to 0'); // Debug print
-          _currentStep = 0;
-        } else if (!data['addMedication']) {
-          print('Medications not added, setting step to 1'); // Debug print
-          _currentStep = 1;
-        } else if (!data['addSymptoms']) {
-          print('Symptoms not added, setting step to 2'); // Debug print
-          _currentStep = 2;
-        } else if (!data['addStrategies']) {
-          print('Strategies not added, setting step to 3'); // Debug print
-          _currentStep = 3;
-        }
+        setState(() {
+          if (!data['isProfilePictureSet']) {
+            print('Profile picture not set, setting step to 0'); // Debug print
+            _currentStep = 0;
+          } else if (!data['addMedication']) {
+            print('Medications not added, setting step to 1'); // Debug print
+            _currentStep = 1;
+          } else if (!data['addSymptoms']) {
+            print('Symptoms not added, setting step to 2'); // Debug print
+            _currentStep = 2;
+          } else if (!data['addStrategies']) {
+            print('Strategies not added, setting step to 3'); // Debug print
+            _currentStep = 3;
+          }
 
-        if (data['isProfilePictureSet']) {
-          print('Profile picture is set, updating UI state'); // Debug print
-          _isSkipped = true;
-          hasSelectedOption = true;
-          _base64Image = data['profilePicture'] ?? defaultProfilePicUrl;
-        }
-      });
-    }
-  } catch (e) {
-    print('Error checking profile status: $e'); // Debug print
-    _showError('Failed to check profile status');
-  } finally {
-    if (mounted) {
-      setState(() => _isCheckingProfile = false);
+          if (data['isProfilePictureSet']) {
+            print('Profile picture is set, updating UI state'); // Debug print
+            _isSkipped = true;
+            hasSelectedOption = true;
+            _base64Image = data['profilePicture'] ?? defaultProfilePicUrl;
+          }
+        });
+      }
+    } catch (e) {
+      print('Error checking profile status: $e'); // Debug print
+      _showError('Failed to check profile status');
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingProfile = false);
+      }
     }
   }
-}
 
   Future<void> _handleStepSubmission() async {
     if (_isLoading) return;
@@ -355,12 +356,12 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
 
         // Rest of the cases remain the same
         case 1:
-          if (_currentMedications.isEmpty) {
-            _showError('Please add at least one medication');
-            setState(() => _isLoading = false);
-            return;
+          if (_currentMedications.isNotEmpty) {
+            success = await provider.addMedications(_currentMedications);
+          } else {
+            // If no medications, still consider it a success
+            success = true;
           }
-          success = await provider.addMedications(_currentMedications);
           if (success) setState(() => _currentStep++);
           break;
 
@@ -419,10 +420,6 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
         }
         return true;
       case 1:
-        if (_currentMedications.isEmpty) {
-          _showError('Please add at least one medication');
-          return false;
-        }
         return true;
       case 2:
         if (_selectedSymptoms.isEmpty) {
@@ -610,29 +607,29 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     final double paddingScale = size.width / 375.0;
     final double fontScale = size.width < 600 ? size.width / 375.0 : 1.5;
     if (_isCheckingProfile) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.upeiRed),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Checking Profile Status...',
-              style: TextStyle(
-                fontSize: 16 * fontScale,
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w500,
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.upeiRed),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Text(
+                'Checking Profile Status...',
+                style: TextStyle(
+                  fontSize: 16 * fontScale,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
@@ -872,6 +869,16 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
+          Text(
+            'Optional: Add Current Medications',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[700],
+              fontStyle: FontStyle.italic,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: _medicationController,
             onSubmitted: (_) {
@@ -880,7 +887,7 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
               setState(() => _hasShownTooltip = true);
             },
             decoration: InputDecoration(
-              labelText: 'Enter Current Medication',
+              labelText: 'Enter Medication (Optional)',
               suffixIcon: IconButton(
                 key: addButtonKey, // Add the key to the add button
                 icon: const Icon(Icons.add),
@@ -902,13 +909,41 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
           Expanded(
             child: _currentMedications.isEmpty
                 ? Center(
-                    child: Text(
-                      'No medications added yet\nUse the + button to add medications',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 16,
-                      ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'No medications added yet\nUse the + button to add medications or skip this step',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            _removeTooltip();
+
+                            setState(() {
+                              _currentStep++;
+                              _hasShownTooltip = true;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.upeiRed,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Skip Medications',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : ListView.builder(
@@ -924,6 +959,30 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
                     },
                   ),
           ),
+          // Add a skip button when medications are added
+          if (_currentMedications.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: TextButton(
+                onPressed: () {
+                  setState(() => _currentStep++);
+                },
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'Skip Remaining Medications',
+                  style: TextStyle(
+                    color: AppTheme.upeiRed,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -933,7 +992,6 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     final addSymptomButtonKey = GlobalKey();
 
     // Show tooltip when step is built
-    
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -1039,13 +1097,15 @@ class TooltipArrowPainter extends CustomPainter {
     final path = Path();
     if (isPointingUp) {
       // Draw arrow pointing up
-      path..moveTo(0, size.height)
+      path
+        ..moveTo(0, size.height)
         ..lineTo(size.width / 2, 0)
         ..lineTo(size.width, size.height)
         ..close();
     } else {
       // Draw arrow pointing down (original behavior)
-      path..moveTo(0, 0)
+      path
+        ..moveTo(0, 0)
         ..lineTo(size.width / 2, size.height)
         ..lineTo(size.width, 0)
         ..close();

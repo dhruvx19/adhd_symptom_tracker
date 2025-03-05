@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:adhd_tracker/models/database_helper.dart';
+import 'package:adhd_tracker/models/reminder_db.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -149,6 +150,8 @@ class LoginProvider with ChangeNotifier {
   Future<void> logout() async {
     try {
       _setLoading(true);
+       await ReminderDatabaseHelper.instance.clearDatabase();
+
       await DatabaseHelper.instance.clearCurrentUser();
       // Clear stored data
       await _secureStorage.delete(key: _tokenKey);
