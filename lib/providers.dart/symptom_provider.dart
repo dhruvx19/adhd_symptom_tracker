@@ -15,13 +15,37 @@ class SymptomProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _isInitialized = false;
-
-  Map<String, bool> get symptomSelection => _symptomSelection;
+   bool isInitialized = false;
+  Map<String, bool> symptomSelection = {};
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get isInitialized => _isInitialized;
-  void updateDate(String value) {
-    date = value.trim();
+  bool hasSubmittedSymptoms = false;
+
+  
+   void initializeWithPredefinedSymptoms(List<String> predefinedSymptoms) {
+    // Clear existing symptoms
+    symptomSelection.clear();
+    
+    // Add all predefined symptoms with default value of false (not selected)
+    for (final symptom in predefinedSymptoms) {
+      symptomSelection[symptom] = false;
+    }
+    
+    isInitialized = true;
+    notifyListeners();
+  }
+  
+  // Add a custom symptom
+  void addCustomSymptom(String symptom) {
+    if (!symptomSelection.containsKey(symptom)) {
+      symptomSelection[symptom] = true; // Set to true by default since the user just added it
+      notifyListeners();
+    }
+  }
+  
+  // Update symptom selection
+  void updateSymptomSelection(String symptom, bool isSelected) {
+    symptomSelection[symptom] = isSelected;
     notifyListeners();
   }
 
@@ -65,11 +89,30 @@ class SymptomProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
-  void updateSymptomSelection(String symptom, bool value) {
-    _symptomSelection[symptom] = value;
+void resetSymptomSelections() {
+    // Keep the same symptom keys but set all values to false
+    symptomSelection.updateAll((key, value) => false);
     notifyListeners();
   }
+  
+  // Update the date and reset symptom selections
+  // void updateDate(String date) {
+  //   selectedDate = date;
+  //   notifyListeners();
+  // }
+  void updateDate(String value) {
+    date = value.trim();
+    notifyListeners();
+  }
+  void clearSymptomSelections() {
+  // Create a new map with all symptoms set to false
+  final Map<String, bool> clearedSelections = {};
+  for (var symptom in symptomSelection.keys) {
+    clearedSelections[symptom] = false;
+  }
+  symptomSelection = clearedSelections;
+  notifyListeners();
+}
 
   Future<bool> logSymptoms({
     required List<String> symptoms,
@@ -93,7 +136,7 @@ class SymptomProvider extends ChangeNotifier {
           'notes': notes,
         }),
       );
-
+hasSubmittedSymptoms = true;
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       _error = e.toString();

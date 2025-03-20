@@ -1,6 +1,8 @@
 import 'package:adhd_tracker/providers.dart/login_provider.dart';
+import 'package:adhd_tracker/ui/auth/login.dart';
 import 'package:adhd_tracker/ui/home/home.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
@@ -19,43 +21,42 @@ class _MoodPageState extends State<MoodPage> {
 
   @override
   void initState() {
-    super.initState();
+     super.initState();
     _checkDailyMoodStatus();
   }
 
- void _navigateToHome() {
-  if (!mounted) return;
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (context) => HomePage()), // Remove PageRouteBuilder
-  );
-}
+
 
   Future<void> _checkDailyMoodStatus() async {
     setState(() => _isChecking = true);
     
     try {
-     
       final loginProvider = Provider.of<LoginProvider>(context, listen: false);
       final token = loginProvider.token;
       
-
-    if (token == null) {
-        throw Exception('No authentication token found');
+      if (token == null) {
+        final storage = const FlutterSecureStorage();
+        final storedToken = await storage.read(key: 'auth_token');
+        
+        if (storedToken == null) {
+          _navigateToLogin();
+          return;
+        } else {
+          loginProvider.setToken(storedToken);
+        }
       }
 
       final today = DateTime.now();
-      final startDate = DateTime(today.year, today.month, today.day);
-      final endDate = startDate;
-
+      final dateString = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+      
       final url = Uri.parse(
-        'https://freelance-backend-xx6e.onrender.com/api/v1/mood/mood?startDate=${startDate.toIso8601String().split('T')[0]}&endDate=${endDate.toIso8601String().split('T')[0]}'
+        'https://freelance-backend-xx6e.onrender.com/api/v1/mood/mood?startDate=$dateString&endDate=$dateString'
       );
 
       final response = await http.get(
         url,
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${loginProvider.token}',
           'Content-Type': 'application/json',
         },
       );
@@ -71,11 +72,14 @@ class _MoodPageState extends State<MoodPage> {
             _navigateToHome();
           }
         } else {
-          // No mood recorded for today
+          // No mood recorded for today, show mood selection UI
           if (mounted) {
             setState(() => _isChecking = false);
           }
         }
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        // Token expired or invalid
+        _navigateToLogin();
       } else {
         throw Exception('Failed to check mood status');
       }
@@ -87,6 +91,22 @@ class _MoodPageState extends State<MoodPage> {
         );
       }
     }
+  }
+
+  void _navigateToLogin() {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
+
+  void _navigateToHome() {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => HomePage()),
+    );
   }
   Future<void> _recordMood() async {
     if (_selectedMood == null) return;

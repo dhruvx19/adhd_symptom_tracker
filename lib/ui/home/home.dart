@@ -1,4 +1,5 @@
 import 'package:adhd_tracker/helpers/theme.dart';
+import 'package:adhd_tracker/ui/home/record/medication.dart';
 import 'package:adhd_tracker/ui/home/record/symptom.dart';
 import 'package:adhd_tracker/ui/representation/mood/mood_analytics.dart';
 import 'package:adhd_tracker/ui/settings/resources.dart';
@@ -37,14 +38,14 @@ class _HomePageState extends State<HomePage> {
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
   List<String> _allPages = [];
-  void _showDateSelectionDialog(BuildContext context, DateTime selectedDay) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Add New Item'),
-          content: Text('What would you like to add for ${selectedDay.day}/${selectedDay.month}/${selectedDay.year}?'),
-          actions: <Widget>[
+  void _showDateSelectionDialog(BuildContext context, DateTime selectedDate) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Log Health Data'),
+        content: const Text('What would you like to log for this date?'),
+        actions: <Widget>[
             TextButton(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -77,10 +78,28 @@ class _HomePageState extends State<HomePage> {
                 );
               },
             ),
-          ],
-        );
-      },
-    );
+          
+          TextButton(
+            child: const Text('Log Symptoms'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => SymptomLogging(selectedDate: selectedDate),
+                ),
+              );
+            },
+          ),
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
   }
   void _createOverlay() {
     if (_overlayEntry == null) {
@@ -233,6 +252,12 @@ class _HomePageState extends State<HomePage> {
     _overlayEntry?.remove();
     _overlayEntry = null;
   }
+@override
+void didChangeDependencies() {
+  super.didChangeDependencies();
+  // Refresh data when the page gains focus
+  _fetchAllData();
+}
 
 // Add to dispose method
   @override

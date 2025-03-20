@@ -198,78 +198,118 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     }
   }
 
-  Future<void> _checkProfileStatus() async {
-    print('Starting profile status check...'); // Debug print
-    setState(() => _isCheckingProfile = true);
-    try {
-      final provider = Provider.of<ProfileProvider>(context, listen: false);
-      final token = await const FlutterSecureStorage().read(key: 'auth_token');
+ Future<void> _checkProfileStatus() async {
+  print('Starting profile status check...'); 
+  setState(() => _isCheckingProfile = true);
+  try {
+    // First check if we have a locally saved profile completion status
+    final prefs = await SharedPreferences.getInstance();
+    final hasCompletedProfile = prefs.getBool('has_completed_profile') ?? false;
+    
+    if (hasCompletedProfile) {
+      print('Local storage indicates profile is complete');
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MoodPage()),
+      );
+      return;
+    }
+    
+    final provider = Provider.of<ProfileProvider>(context, listen: false);
+    final storage = const FlutterSecureStorage();
+    final token = await storage.read(key: 'auth_token');
 
-      if (token == null) {
-        print('No auth token found');
-        setState(() => _isCheckingProfile = false);
+    if (token == null) {
+      print('No auth token found');
+      _redirectToLogin();
+      return;
+    }
+    
+    print('Making API request to check profile status...');
+    final response = await http.get(
+      Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+    
+    print('API Response status code: ${response.statusCode}');
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body)['data'];
+      print('Profile data received: $data');
+      
+      // Check if profile is complete
+      if (data['isProfilePictureSet'] &&
+          data['addMedication'] &&
+          data['addSymptoms'] &&
+          data['addStrategies']) {
+        print('All profile steps completed, navigating to MoodPage...');
+        
+        // Save to local storage to avoid API calls next time
+        await prefs.setBool('has_completed_profile', true);
+        
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MoodPage()),
+        );
         return;
       }
-      print('Making API request to check profile status...'); //
-      final response = await http.get(
-        Uri.parse(
-            'https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-      print('API Response status code: ${response.statusCode}');
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body)['data'];
-        print('Profile data received: $data');
-        // Don't automatically navigate to login
-        // Only navigate if ALL steps are completed
-        if (data['isProfilePictureSet'] &&
-            data['addMedication'] &&
-            data['addSymptoms'] &&
-            data['addStrategies']) {
-          print('All profile steps completed, navigating to SignUpScreen...');
-          if (!mounted) return;
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => MoodPage()),
-          );
-          return;
+
+      setState(() {
+        if (!data['isProfilePictureSet']) {
+          print('Profile picture not set, setting step to 0');
+          _currentStep = 0;
+        } else if (!data['addMedication']) {
+          print('Medications not added, setting step to 1');
+          _currentStep = 1;
+        } else if (!data['addSymptoms']) {
+          print('Symptoms not added, setting step to 2');
+          _currentStep = 2;
+        } else if (!data['addStrategies']) {
+          print('Strategies not added, setting step to 3');
+          _currentStep = 3;
         }
 
-        setState(() {
-          if (!data['isProfilePictureSet']) {
-            print('Profile picture not set, setting step to 0'); // Debug print
-            _currentStep = 0;
-          } else if (!data['addMedication']) {
-            print('Medications not added, setting step to 1'); // Debug print
-            _currentStep = 1;
-          } else if (!data['addSymptoms']) {
-            print('Symptoms not added, setting step to 2'); // Debug print
-            _currentStep = 2;
-          } else if (!data['addStrategies']) {
-            print('Strategies not added, setting step to 3'); // Debug print
-            _currentStep = 3;
-          }
-
-          if (data['isProfilePictureSet']) {
-            print('Profile picture is set, updating UI state'); // Debug print
-            _isSkipped = true;
-            hasSelectedOption = true;
-            _base64Image = data['profilePicture'] ?? defaultProfilePicUrl;
-          }
-        });
-      }
-    } catch (e) {
-      print('Error checking profile status: $e'); // Debug print
-      _showError('Failed to check profile status');
-    } finally {
-      if (mounted) {
-        setState(() => _isCheckingProfile = false);
-      }
+        if (data['isProfilePictureSet']) {
+          print('Profile picture is set, updating UI state');
+          _isSkipped = true;
+          hasSelectedOption = true;
+          _base64Image = data['profilePicture'] ?? defaultProfilePicUrl;
+        }
+      });
+    } else if (response.statusCode == 401 || response.statusCode == 403 || response.statusCode == 404) {
+      // Session expired or invalid token - redirect to login
+      print('Authentication error or endpoint not found: ${response.statusCode}');
+      _showError('Session expired. Please login again.');
+      _redirectToLogin();
+    } else {
+      print('Unknown error: ${response.statusCode}');
+      _showError('Failed to retrieve profile. Please try again.');
+      // Let the user continue with profile creation in case of other errors
+    }
+  } catch (e) {
+    print('Error checking profile status: $e');
+    _showError('Failed to check profile status');
+  } finally {
+    if (mounted) {
+      setState(() => _isCheckingProfile = false);
     }
   }
+}
 
+
+void _redirectToLogin() {
+  const FlutterSecureStorage().delete(key: 'auth_token');
+  
+  if (!mounted) return;
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => const LoginPage()),
+  );
+}
   Future<void> _handleStepSubmission() async {
     if (_isLoading) return;
 
@@ -376,39 +416,39 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
           break;
 
         case 3:
-          if (_selectedStrategies.isEmpty) {
-            _showError('Please select a support strategy');
-            setState(() => _isLoading = false);
-            return;
-          }
-          success = await provider.addStrategy(_selectedStrategies.first);
-          if (success && _currentStep == 3) {
-            // Save profile completion status
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setBool('has_completed_profile', true);
+                  if (_selectedStrategies.isEmpty) {
+          _showError('Please select a support strategy');
+          setState(() => _isLoading = false);
+          return;
+        }
+        success = await provider.addStrategy(_selectedStrategies.first);
+        if (success) {
+          // Save profile completion status
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('has_completed_profile', true);
 
-            if (!mounted) return;
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginPage()),
-            );
-          }
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => LoginPage()),
+          );
+        }
+        break;
+    }
 
-          break;
-      }
-
-      if (!success) {
-        _showError(provider.error ?? 'Failed to save data');
-      }
-    } catch (e) {
-      _showError('An unexpected error occurred');
-      print('Error in step submission: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    if (!success) {
+      _showError(provider.error ?? 'Failed to save data');
+    }
+  } catch (e) {
+    _showError('An unexpected error occurred');
+    print('Error in step submission: $e');
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
+
 
 // New helper method to validate current step
   bool _validateCurrentStep() {
@@ -643,6 +683,16 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
             fontSize: 20 * fontScale,
           ),
         ),
+        actions: [
+        IconButton(
+          icon: const Icon(Icons.exit_to_app),
+          onPressed: () {
+            _redirectToLogin();
+          },
+          tooltip: 'Logout',
+        ),
+      ],
+    
       ),
       body: Column(
         children: [

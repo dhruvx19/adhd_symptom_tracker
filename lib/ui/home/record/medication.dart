@@ -1,3 +1,4 @@
+import 'package:adhd_tracker/providers.dart/symptom_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:adhd_tracker/providers.dart/medication_provider.dart';
@@ -62,6 +63,22 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
       provider.updateDate(formattedDate);
     }
   }
+
+  void _skipMedicationLogging() {
+  // Check if symptoms have been submitted
+  final symptomProvider = Provider.of<SymptomProvider>(context, listen: false);
+  if (symptomProvider.hasSubmittedSymptoms) {
+    // If symptoms have been submitted, navigate to home page
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  } else {
+    // If symptoms haven't been submitted, show an error message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please submit symptoms before continuing')),
+    );
+    // Navigate back to the symptoms screen
+    Navigator.pop(context);
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -135,43 +152,76 @@ class _MedicationLoggingPageState extends State<MedicationLoggingPage> {
                       style: const TextStyle(color: Colors.red),
                     ),
                   ),
-                ElevatedButton(
-                  onPressed: provider.isLoading
-                      ? null
-                      : () async {
-                          if (medicationController.text.isEmpty ||
-                              dosageController.text.isEmpty ||
-                              timeController.text.isEmpty ||
-                              effectsController.text.isEmpty ||
-                              dateController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please fill in all fields'),
-                                backgroundColor: Colors.red,
+                // Row for Submit and Skip buttons
+                Row(
+                  children: [
+                    // Submit Button (expanded to take available space)
+                    Expanded(
+                      flex: 3,
+                      child: ElevatedButton(
+                        onPressed: provider.isLoading
+                            ? null
+                            : () async {
+                                if (medicationController.text.isEmpty ||
+                                    dosageController.text.isEmpty ||
+                                    timeController.text.isEmpty ||
+                                    effectsController.text.isEmpty ||
+                                    dateController.text.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please fill in all fields'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                await provider.submitMedication(context);
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.upeiRed,
+                          minimumSize: Size(0, size.height * 0.07),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: provider.isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Text(
+                                'Submit',
+                                style: TextStyle(
+                                  fontSize: 18 * fontScale,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
                               ),
-                            );
-                            return;
-                          }
-                          await provider.submitMedication(context);
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.upeiRed,
-                    minimumSize: Size(double.infinity, size.height * 0.07),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    elevation: 0,
-                  ),
-                  child: provider.isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          'Submit Medication',
+                    const SizedBox(width: 12),
+                    // Skip Button
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: _skipMedicationLogging,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[300],
+                          minimumSize: Size(0, size.height * 0.07),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Skip',
                           style: TextStyle(
                             fontSize: 18 * fontScale,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: Colors.black87,
                           ),
                         ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

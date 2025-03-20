@@ -14,6 +14,7 @@ class LoginProvider with ChangeNotifier {
   String? _token;
   bool _isLoggedIn = false;
 
+
   // Getters
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -26,7 +27,11 @@ class LoginProvider with ChangeNotifier {
   static const String _tokenKey = 'auth_token';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-
+void setToken(String token) {
+    _token = token;
+    notifyListeners();
+  }
+  
   // Initialize provider and check for existing token
   Future<void> initialize() async {
     try {
@@ -38,6 +43,7 @@ class LoginProvider with ChangeNotifier {
         final isValid = await _validateToken(token);
         if (isValid) {
           _token = token;
+           notifyListeners();
           _isLoggedIn = true;
           await NotificationService.initializeNotifications();
           await NotificationService.scheduleDailyReminder();

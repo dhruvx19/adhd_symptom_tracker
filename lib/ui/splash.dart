@@ -63,96 +63,91 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
  Future<void> _initializeApp() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
-      final storage = const FlutterSecureStorage();
-      
-      if (!mounted) return;
-      
-      setState(() {
-        isFirstTime = prefs.getBool('is_first_time') ?? true;
-      });
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+    final storage = const FlutterSecureStorage();
+    
+    if (!mounted) return;
+    
+    setState(() {
+      isFirstTime = prefs.getBool('is_first_time') ?? true;
+    });
 
-      // First time users should stay on splash screen
-      if (isFirstTime) {
-        return;
-      }
+    // First time users should stay on splash screen
+    if (isFirstTime) {
+      return;
+    }
 
-      // Check if profile is completed
-      final bool isProfileCompleted = prefs.getBool('has_completed_profile') ?? false;
-      final String? authToken = await storage.read(key: 'auth_token');
+    // Wait for animation to complete
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (!mounted) return;
 
-      if (!mounted) return;
+    // Check if user is authenticated
+    final String? authToken = await storage.read(key: 'auth_token');
+    if (authToken == null) {
+      _navigateToPage(const LoginPage());
+      return;
+    }
 
-      if (isProfileCompleted) {
-        // If profile is completed, only check auth status
-        if (authToken != null) {
-          await Future.delayed(const Duration(milliseconds: 1500));
-          if (!mounted) return;
-          _navigateToPage(MoodPage());
-        } else {
-          await Future.delayed(const Duration(milliseconds: 1500));
-          if (!mounted) return;
-          _navigateToPage(const LoginPage());
-        }
-        return;
-      }
+    // Update login provider with token
+    loginProvider.setToken(authToken);
 
-      // Initialize login provider and check token
-      await loginProvider.initialize();
-      
-      if (!mounted) return;
+    // Validate token
+    final bool isValidToken = await _validateToken(authToken);
+    if (!isValidToken) {
+      await storage.delete(key: 'auth_token');
+      _navigateToPage(const LoginPage());
+      return;
+    }
 
-      // If we have a token, check profile status
-      if (authToken != null) {
-        final response = await http.get(
-          Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
-          headers: {
-            'Authorization': 'Bearer $authToken',
-          },
-        );
+    // Check if profile is completed
+    final bool isProfileCompleted = await _checkProfileCompletion(authToken);
+    if (!isProfileCompleted) {
+      _navigateToPage(const ProfileCreationPage());
+      return;
+    }
 
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body)['data'];
-          
-          // If all steps are completed, set profile completion flag
-          if (data['isProfilePictureSet'] && 
-              data['addMedication'] && 
-              data['addSymptoms'] && 
-              data['addStrategies']) {
-            await prefs.setBool('has_completed_profile', true);
-            if (!mounted) return;
-            _navigateToPage(MoodPage());
-          } else {
-            await Future.delayed(const Duration(milliseconds: 1500));
-            if (!mounted) return;
-            _navigateToPage(const ProfileCreationPage());
-          }
-        } else {
-          await Future.delayed(const Duration(milliseconds: 1500));
-          if (!mounted) return;
-          _navigateToPage(const LoginPage());
-        }
-      } else {
-        await Future.delayed(const Duration(milliseconds: 1500));
-        if (!mounted) return;
-        _navigateToPage(const LoginPage());
-      }
-    } catch (e) {
-      debugPrint('Error in _initializeApp: $e');
-      if (mounted) {
-        _navigateToPage(const LoginPage());
-      }
+    // Profile is complete, check if mood is recorded for today
+    final bool hasMoodRecorded = await _checkTodaysMoodStatus(authToken);
+    if (hasMoodRecorded) {
+      _navigateToPage(HomePage());
+    } else {
+      _navigateToPage(MoodPage());
+    }
+  } catch (e) {
+    debugPrint('Error in _initializeApp: $e');
+    if (mounted) {
+      _navigateToPage(const LoginPage());
     }
   }
+}
 
-// Add this new method to check profile completion
-Future<bool> _checkProfileCompletion() async {
+Future<bool> _validateToken(String token) async {
   try {
-    final token = await const FlutterSecureStorage().read(key: 'auth_token');
-    if (token == null) return false;
+    final response = await http.get(
+      Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+    
+    return response.statusCode == 200;
+  } catch (e) {
+    debugPrint('Error validating token: $e');
+    return false;
+  }
+}
 
+Future<bool> _checkProfileCompletion(String token) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedCompletion = prefs.getBool('has_completed_profile') ?? false;
+    
+    if (cachedCompletion) {
+      return true;
+    }
+    
     final response = await http.get(
       Uri.parse('https://freelance-backend-xx6e.onrender.com/api/v1/users/getuserdetails'),
       headers: {
@@ -162,17 +157,55 @@ Future<bool> _checkProfileCompletion() async {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body)['data'];
-      return data['isProfilePictureSet'] && 
-             data['addMedication'] && 
-             data['addSymptoms'] && 
-             data['addStrategies'];
+      final isComplete = data['isProfilePictureSet'] && 
+                         data['addMedication'] && 
+                         data['addSymptoms'] && 
+                         data['addStrategies'];
+      
+      // Cache the result to avoid unnecessary API calls
+      if (isComplete) {
+        await prefs.setBool('has_completed_profile', true);
+      }
+      
+      return isComplete;
     }
     return false;
   } catch (e) {
-    print('Error checking profile completion: $e');
+    debugPrint('Error checking profile completion: $e');
     return false;
   }
 }
+
+Future<bool> _checkTodaysMoodStatus(String token) async {
+  try {
+    final today = DateTime.now();
+    final dateString = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+    
+    final url = Uri.parse(
+      'https://freelance-backend-xx6e.onrender.com/api/v1/mood/mood?startDate=$dateString&endDate=$dateString'
+    );
+    
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      return responseData['success'] == true && 
+             responseData['data'] != null && 
+             responseData['data'].length > 0;
+    }
+    return false;
+  } catch (e) {
+    debugPrint('Error checking mood status: $e');
+    return false;
+  }
+}
+
   Future<void> _handleGetStarted() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_first_time', false);
