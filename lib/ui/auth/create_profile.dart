@@ -970,48 +970,55 @@ void _redirectToLogin() {
             ),
           ),
         ),
-        const SizedBox(height: 20),
-        Expanded(
+        const SizedBox(height: 16),
+        // Wrap the Expanded with Flexible to handle keyboard resizing
+        Flexible(
           child: _currentMedications.isEmpty && _predefinedMedications.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'No medications added yet\nUse the + button to add medications or skip this step',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          _removeTooltip();
-
-                          setState(() {
-                            _currentStep++;
-                            _hasShownTooltip = true;
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.upeiRed,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+              ? SingleChildScrollView(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 20),
+                        Text(
+                          'No medications added yet\nUse the + button to add medications or skip this step',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 16,
                           ),
                         ),
-                        child: const Text(
-                          'Skip Medications',
-                          style: TextStyle(color: Colors.white),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            _removeTooltip();
+                            setState(() {
+                              _currentStep++;
+                              _hasShownTooltip = true;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.upeiRed,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Skip Medications',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 )
               : ListView(
+                  // Adding physics to ensure good scrolling behavior
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  // Add padding to ensure content doesn't get cut off at bottom
+                  padding: const EdgeInsets.only(bottom: 100),
                   children: [
                     // Display custom added medications
                     if (_currentMedications.isNotEmpty)
@@ -1032,12 +1039,13 @@ void _redirectToLogin() {
                             icon: const Icon(Icons.close),
                             onPressed: () => _removeMedication(_currentMedications.indexOf(medication)),
                           ),
+                          dense: true, // Make list items more compact
                         )),
                     
                     // Display predefined medications with checkboxes
                     if (_predefinedMedications.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        padding: const EdgeInsets.symmetric(vertical: 12.0),
                         child: Text(
                           'Common ADHD Medications',
                           style: TextStyle(
@@ -1059,6 +1067,8 @@ void _redirectToLogin() {
                               }
                             });
                           },
+                          dense: true, // Make list items more compact
+                          controlAffinity: ListTileControlAffinity.leading,
                         )),
                   ],
                 ),
@@ -1066,14 +1076,13 @@ void _redirectToLogin() {
         // Add a skip button when medications are added
         if (_currentMedications.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 16.0),
+            padding: const EdgeInsets.only(top: 8.0),
             child: TextButton(
               onPressed: () {
                 setState(() => _currentStep++);
               },
               style: TextButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -1091,7 +1100,6 @@ void _redirectToLogin() {
     ),
   );
 }
-
   Widget _buildADHDSymptomsStep() {
     final addSymptomButtonKey = GlobalKey();
 
