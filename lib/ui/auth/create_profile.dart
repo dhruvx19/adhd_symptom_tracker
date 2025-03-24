@@ -56,6 +56,21 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
     'Trouble waiting turn',
     'Interrupting'
   ];
+  final List<String> _predefinedMedications = [
+    'Adderall XR',
+    'Foquest',
+    'Concerta',
+    'Vyvanse',
+    'Strattera',
+    'Focalin',
+    'Dexedrine',
+    'Intuniv',
+    'Quillivant XR',
+    'Daytrana',
+    'Jornay PM',
+    'Qelbree'
+  ];
+
 
   final List<String> _predefinedStrategies = [
     'Psychology',
@@ -904,139 +919,178 @@ void _redirectToLogin() {
     );
   }
 
-  Widget _buildCurrentMedicationsStep() {
-    // Create a GlobalKey for the add button
-    final addButtonKey = GlobalKey();
+ Widget _buildCurrentMedicationsStep() {
+  // Create a GlobalKey for the add button
+  final addButtonKey = GlobalKey();
 
-    // Show tooltip when step is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_currentStep == 1 && !_hasShownTooltip) {
-        _showTooltip(context, addButtonKey);
-      }
-    });
+  // Show tooltip when step is built
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (_currentStep == 1 && !_hasShownTooltip) {
+      _showTooltip(context, addButtonKey);
+    }
+  });
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          Text(
-            'Optional: Add Current Medications',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[700],
-              fontStyle: FontStyle.italic,
-            ),
-            textAlign: TextAlign.center,
+  return Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+      children: [
+        Text(
+          'Optional: Add Current Medications',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[700],
+            fontStyle: FontStyle.italic,
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _medicationController,
-            onSubmitted: (_) {
-              _addMedication();
-              _removeTooltip();
-              setState(() => _hasShownTooltip = true);
-            },
-            decoration: InputDecoration(
-              labelText: 'Enter Medication (Optional)',
-              suffixIcon: IconButton(
-                key: addButtonKey, // Add the key to the add button
-                icon: const Icon(Icons.add),
-                onPressed: () {
-                  _addMedication();
-                  _removeTooltip();
-                  setState(() => _hasShownTooltip = true);
-                },
-              ),
-              filled: true,
-              fillColor: Colors.grey[200],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _medicationController,
+          onSubmitted: (_) {
+            _addMedication();
+            _removeTooltip();
+            setState(() => _hasShownTooltip = true);
+          },
+          decoration: InputDecoration(
+            labelText: 'Enter Medication (Optional)',
+            suffixIcon: IconButton(
+              key: addButtonKey, // Add the key to the add button
+              icon: const Icon(Icons.add),
+              onPressed: () {
+                _addMedication();
+                _removeTooltip();
+                setState(() => _hasShownTooltip = true);
+              },
+            ),
+            filled: true,
+            fillColor: Colors.grey[200],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
           ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: _currentMedications.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'No medications added yet\nUse the + button to add medications or skip this step',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
+        ),
+        const SizedBox(height: 20),
+        Expanded(
+          child: _currentMedications.isEmpty && _predefinedMedications.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'No medications added yet\nUse the + button to add medications or skip this step',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          _removeTooltip();
+
+                          setState(() {
+                            _currentStep++;
+                            _hasShownTooltip = true;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.upeiRed,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () {
-                            _removeTooltip();
-
+                        child: const Text(
+                          'Skip Medications',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView(
+                  children: [
+                    // Display custom added medications
+                    if (_currentMedications.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(
+                          'Your Medications',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                      ),
+                    ..._currentMedications.map((medication) => ListTile(
+                          title: Text(medication),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => _removeMedication(_currentMedications.indexOf(medication)),
+                          ),
+                        )),
+                    
+                    // Display predefined medications with checkboxes
+                    if (_predefinedMedications.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Text(
+                          'Common ADHD Medications',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                      ),
+                    ..._predefinedMedications.map((medication) => CheckboxListTile(
+                          title: Text(medication),
+                          value: _currentMedications.contains(medication),
+                          onChanged: (bool? value) {
                             setState(() {
-                              _currentStep++;
-                              _hasShownTooltip = true;
+                              if (value == true) {
+                                _currentMedications.add(medication);
+                              } else {
+                                _currentMedications.remove(medication);
+                              }
                             });
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.upeiRed,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Skip Medications',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _currentMedications.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text(_currentMedications[index]),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => _removeMedication(index),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          // Add a skip button when medications are added
-          if (_currentMedications.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 16.0),
-              child: TextButton(
-                onPressed: () {
-                  setState(() => _currentStep++);
-                },
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                        )),
+                  ],
                 ),
-                child: Text(
-                  'Skip Remaining Medications',
-                  style: TextStyle(
-                    color: AppTheme.upeiRed,
-                    fontWeight: FontWeight.bold,
-                  ),
+        ),
+        // Add a skip button when medications are added
+        if (_currentMedications.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 16.0),
+            child: TextButton(
+              onPressed: () {
+                setState(() => _currentStep++);
+              },
+              style: TextButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Skip Remaining Medications',
+                style: TextStyle(
+                  color: AppTheme.upeiRed,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
+          ),
+      ],
+    ),
+  );
+}
 
   Widget _buildADHDSymptomsStep() {
     final addSymptomButtonKey = GlobalKey();
